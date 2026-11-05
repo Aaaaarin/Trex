@@ -6,7 +6,7 @@ import traceback
 
 from . import channels, dispatch, store
 from .agent import Agent, has_pending_work
-from .config import DEMO
+from .config import DEMO, standin
 
 
 class Runner:
@@ -37,9 +37,25 @@ class Runner:
             return True
         return has_pending_work(store.get_turns(self.run))
 
+    def _close_offer_window(self) -> None:
+        """Nobody waits forever. Once the window passes, unanswered offers end and the agent decides without them."""
+        if store.rows("select id from runs where id=? and status='working'", (self.run,)):
+            return
+        window = standin("offer_reply_window_seconds")
+        now = time.time()
+        late = [r for r in store.rows("select * from reservations where run=? and status='open'", (self.run,)) if now - r["ts"] > window]
+        if not late:
+            return
+        for r in late:
+            store.execute("update reservations set status='expired' where key=?", (r["key"],))
+            store.log(self.run, "reservation_expired", retailer=r["retailer"], product=r["product"])
+        names = ", ".join(sorted({r["retailer"] for r in late}))
+        store.add_inbox(self.run, "clock", "system", f"Offer window closed. No reply from: {names}. Their offers are gone and their stock is free again.", False, f"window:{names}:{int(now)}")
+
     def _loop(self) -> None:
         agent = None
         while not self.stopped.is_set():
+            self._close_offer_window()
             if self._has_work():
                 # Let a burst of replies arrive together, so one turn handles them all.
                 time.sleep(1.5)

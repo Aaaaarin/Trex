@@ -265,10 +265,49 @@ def test_drop_before_issue_is_refused(run):
 
 
 def test_going_under_target_can_be_the_cheapest_priced_option(run):
-    options = tools_for(run).price_options("V3")["options"]
-    assert {"go", "sell_to_fill", "hold"} <= {o["name"] for o in options}
-    sell = next(o for o in options if o["name"] == "sell_to_fill")
+    priced = tools_for(run).price_options("V3")
+    names = {o["name"] for o in priced["options"]}
+    assert priced["target_reachable_by_offers"] is False
+    assert "sell_to_fill" not in names and {"go", "hold"} <= names
+
+
+def test_selling_is_priced_on_expected_yes_when_it_can_work(run):
+    priced = tools_for(run).price_options("V2")
+    sell = next(o for o in priced["options"] if o["name"] == "sell_to_fill")
     assert "expect about" in sell["note"]
+
+
+def test_no_selling_when_target_is_out_of_reach(run):
+    result = tools_for(run).plan_offers("V3")
+    assert result["target_reachable"] is False and result["offers"] == []
+
+
+def test_questions_per_truck_are_capped(run):
+    from trex.config import standin
+
+    tools = tools_for(run)
+    tools.plan_offers("V2")
+    assert len(store.get_kv(run, "offers:V2")) <= standin("max_questions_per_truck")
+
+
+def test_every_offer_has_a_batch_that_retailer_can_take(run):
+    tools = tools_for(run)
+    night = tools.night()
+    shares = __import__("trex.config", fromlist=["standin"]).standin("min_life_share")
+    for o in night.offers("V2", limit=20):
+        rows = night.stock_table[(night.stock_table["product_id"] == o["product"]) & (night.stock_table["share_left"] >= shares[o["retailer_type"]])]
+        assert rows["pieces"].sum() >= o["pieces"], o
+
+
+def test_offer_window_closes_and_wakes_the_agent(run):
+    from trex import orchestrator
+
+    runner = orchestrator.Runner(run)
+    store.execute("insert into reservations(key, run, truck, retailer, product, pieces, status, ts, discount) values(?,?,?,?,?,?,?,?,?)", (f"{run}:k", run, "V2", "R-1", "P001", 5, "open", 0, 0))
+    store.set_status(run, "waiting")
+    runner._close_offer_window()
+    assert store.rows("select status from reservations where key=?", (f"{run}:k",))[0]["status"] == "expired"
+    assert any("Offer window closed" in r["text"] for r in store.unhandled_inbox(run))
 
 
 def test_change_on_another_truck_does_not_cancel_an_approval(run):

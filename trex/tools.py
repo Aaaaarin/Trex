@@ -171,7 +171,11 @@ class Tools:
         me = next(t for t in night.truck_summary() if t["truck"] == truck)
         gap = max(0.0, standin("fill_target") * me["capacity_kg"] - me["kg"])
         asked = set(store.get_kv(self.run, f"offers:{truck}", {}))
-        candidates = night.offers(truck, limit=20, already_asked=asked)
+        room = max(0, standin("max_questions_per_truck") - len(asked))
+        candidates = night.offers(truck, limit=room, already_asked=asked) if room else []
+        if sum(o["kg"] for o in candidates) < gap:
+            store.log(self.run, "selling_stopped", truck=truck, needs_kg=round(gap), reachable_kg=round(sum(o["kg"] for o in candidates)))
+            return {"truck": truck, "needs_kg": round(gap), "target_reachable": False, "offers": [], "note": "Even if every suitable shop said yes, this truck would not reach target within the limit on questions. Do not sell. Compare go under target, merge and hold with price_options, then ask a person."}
         chosen, kg = [], 0.0
         for o in candidates:
             if kg >= gap * 1.1:

@@ -150,6 +150,13 @@ class Night:
         """
         already_asked = already_asked or set()
         free = self.free_stock()
+        min_share = standin("min_life_share")
+        usable: dict[tuple[str, str], int] = {}
+        for b in self.stock_table.itertuples():
+            for kind, share in min_share.items():
+                if b.share_left >= share and b.days_left > 0:
+                    left = int(b.pieces) - self.locked_batches.get(b.batch_id, 0)
+                    usable[(b.product_id, kind)] = usable.get((b.product_id, kind), 0) + max(0, left)
         routes = {ln.route for ln in self.lines if ln.truck == truck}
         ordering = {(ln.retailer, ln.product) for ln in self.lines}
         risk = self._at_risk_products(truck)
@@ -188,12 +195,14 @@ class Night:
             pieces = max(1, math.ceil(r.pieces / r.bills * scale))
             cases = max(1, round(pieces / pack))
             pieces = cases * pack if pack > 1 else pieces
-            if pieces > free.get(r.product_id, 0):
-                cases = free.get(r.product_id, 0) // pack
+            room = min(free.get(r.product_id, 0), usable.get((r.product_id, r.retailer_type_hint), 0))
+            if pieces > room:
+                cases = room // pack
                 pieces = cases * pack
                 if pieces <= 0:
                     continue
             free[r.product_id] -= pieces
+            usable[(r.product_id, r.retailer_type_hint)] -= pieces
             seen.add(r.retailer_id)
             kg_each = r.kg / max(r.pieces, 0.1)
             offers.append({"retailer": r.retailer_id, "retailer_type": r.retailer_type_hint, "route": r.route_id, "product": r.product_id, "product_name": r.product_name, "pieces": pieces, "cases": cases if pack > 1 else None, "pieces_per_case": pack, "kg": round(pieces * kg_each, 1), "value_inr": round(pieces * r.net / max(r.pieces, 0.1)), "ageing_stock": bool(r.ageing), "discount_inr_per_piece": max_off if r.ageing else 0, "days_left": risk[r.product_id]["days_left"] if r.ageing else None, "cover_low_days": belief.low_days, "cover_high_days": belief.high_days, "confidence": belief.confidence, "bills": int(r.bills), "why": ("Ageing batch. " if r.ageing else "") + belief.note, "evidence": r.ref})
@@ -216,8 +225,10 @@ class Night:
         value = sum(result["allocated"][ln.key] * ln.value_per_piece for ln in lines)
         short_margin = round(sum((ln.pieces - result["allocated"][ln.key]) * ln.value_per_piece * margin * loss.get(ln.retailer_type, 0.6) for ln in lines))
         hold_margin = round(sum(result["allocated"][ln.key] * ln.value_per_piece * margin * loss.get(ln.retailer_type, 0.6) for ln in lines))
-        offers = self.offers(truck)
+        max_asks = standin("max_questions_per_truck")
+        offers = self.offers(truck, limit=max_asks)
         gap_kg = max(0.0, target * me["capacity_kg"] - me["kg"])
+        reachable = sum(o["kg"] for o in offers) >= gap_kg
         chosen, added = [], 0.0
         for o in offers:
             if added >= gap_kg:
@@ -249,7 +260,9 @@ class Night:
         ]
         if merge:
             options.insert(2, merge)
+        if not reachable:
+            options = [o for o in options if o["name"] != "sell_to_fill"]
         for o in options:
             o["net_cost_inr"] = o["truck_cost_inr"] + o["margin_lost_inr"] + o["expiry_risk_inr"] + o["discounts_inr"] - o["extra_margin_inr"]
         best = min(options, key=lambda o: o["net_cost_inr"])
-        return {"truck": truck, "fill": me["fill"], "kg": me["kg"], "capacity_kg": me["capacity_kg"], "stops": me["stops"], "needs_kg_for_target": round(gap_kg), "route_value_inr": round(value), "options": options, "recommended": best["name"], "solver": result["method"], "standins": ["capacity", "trip cost", "margin", "lost sale chance", "shelf life", "stock", "orders are next-day bills"]}
+        return {"truck": truck, "fill": me["fill"], "kg": me["kg"], "capacity_kg": me["capacity_kg"], "stops": me["stops"], "needs_kg_for_target": round(gap_kg), "target_reachable_by_offers": reachable, "route_value_inr": round(value), "options": options, "recommended": best["name"], "solver": result["method"], "standins": ["capacity", "trip cost", "margin", "lost sale chance", "shelf life", "stock", "orders are next-day bills"]}

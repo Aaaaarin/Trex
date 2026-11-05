@@ -35,7 +35,7 @@
     },
     "shelf_life_days": {
       "value": {
-        "milk": 60,
+        "milk": 90,
         "paneer": 45,
         "butter": 120,
         "cheese": 180,
@@ -95,6 +95,10 @@
     "offer_acceptance_rate": {
       "value": 0.6,
       "note": "Placeholder share of offers accepted. Real acceptance is unproven"
+    },
+    "offer_reply_window_seconds": {
+      "value": 90,
+      "note": "How long Trex waits for offer replies tonight before deciding without them"
     }
   }
 }
