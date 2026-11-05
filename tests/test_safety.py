@@ -54,22 +54,22 @@ def test_standin_use_is_reported(run):
 @pytest.mark.parametrize("fault,expected", [("500_after_write", "saved_after_error"), ("timeout_after_write", "saved_after_error"), ("malformed", "saved_after_error")])
 def test_failure_after_write_creates_no_duplicate(run, fault, expected):
     orders_api.inject(run, fault)
-    result = orders_api.write_safely(run, "k1", {"a": 1})
+    result = orders_api.write_safely(run, f"{run}:k1", {"a": 1})
     assert result["status"] == expected
     assert orders_api.count(run) == 1
-    assert orders_api.write_safely(run, "k1", {"a": 1})["status"] == "already_saved"
+    assert orders_api.write_safely(run, f"{run}:k1", {"a": 1})["status"] == "already_saved"
     assert orders_api.count(run) == 1
 
 
 def test_failure_before_write_retries_once_saved(run):
     orders_api.inject(run, "500_before_write")
-    assert orders_api.write_safely(run, "k1", {"a": 1})["status"] == "saved"
+    assert orders_api.write_safely(run, f"{run}:k1", {"a": 1})["status"] == "saved"
     assert orders_api.count(run) == 1
 
 
 def test_stale_stock_conflict_is_reported_not_retried(run):
     orders_api.inject(run, "409_stale_stock")
-    assert orders_api.write_safely(run, "k1", {"a": 1})["status"] == "conflict"
+    assert orders_api.write_safely(run, f"{run}:k1", {"a": 1})["status"] == "conflict"
     assert orders_api.count(run) == 0
 
 
