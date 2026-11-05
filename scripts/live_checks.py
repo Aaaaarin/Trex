@@ -1,6 +1,6 @@
 """Run two behaviours against the real agent, each on its own server and temporary database.
 
-Usage: python scripts/live_checks.py   (spends a small amount of model credit)
+Usage: python scripts/live_checks.py [case names]   (spends a small amount of model credit)
 """
 import json
 import os
@@ -19,6 +19,8 @@ NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 CASES = [
     {"name": "hard request, failed write", "port": 8021, "text": "Route 4 ki gaadi kal jayegi? load kam hai. Hotel R-120 ko Butter 30x500 CP ke 200 packet chahiye kal subah", "fault": "500_after_write", "focus": "V2"},
     {"name": "truck that cannot reach target", "port": 8022, "text": "Route 13 ki gaadi kal jayegi kya? Bahut khaali lag rahi hai, kya karein", "fault": None, "focus": "V3"},
+    {"name": "merge", "port": 8023, "text": "Route 13 ki gaadi kal jayegi kya? Bahut khaali lag rahi hai, kya karein", "fault": None, "focus": "V3", "prefer": "merge"},
+    {"name": "hold", "port": 8024, "text": "Route 13 ki gaadi workshop mein hai, kal nahi ja sakti aur koi doosri gaadi uske stops nahi le sakti. Hold karwa do", "fault": None, "focus": "V3", "prefer": "hold"},
 ]
 
 
@@ -48,7 +50,8 @@ def run_case(case: dict, out: list) -> None:
                 signature, last = sig, time.time()
             for d in s.get("decisions", []):
                 if d["answer"] is None and d["id"] not in answered:
-                    answer = next((o for o in d["options"] if o.lower().startswith("approve")), d["options"][0])
+                    prefer = case.get("prefer", "approve")
+                    answer = next((o for o in d["options"] if prefer in o.lower()), None) or next((o for o in d["options"] if o.lower().startswith("approve")), d["options"][0])
                     lines.append(f"DECISION: {d['question'][:260]} | options {d['options']} | answered {answer}")
                     client.post(f"/api/decision/{d['id']}?run={run}", json={"answer": answer})
                     answered.add(d["id"])
@@ -83,7 +86,8 @@ def run_case(case: dict, out: list) -> None:
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     out: list[str] = []
-    threads = [threading.Thread(target=run_case, args=(c, out)) for c in CASES]
+    chosen = [c for c in CASES if len(sys.argv) < 2 or c["name"] in sys.argv[1:]]
+    threads = [threading.Thread(target=run_case, args=(c, out)) for c in chosen]
     for t in threads:
         t.start()
     for t in threads:

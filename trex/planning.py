@@ -245,13 +245,21 @@ class Night:
         expiry = round(moved_ageing)
         expiry_hold = round(moved_ageing + one_day_ageing)
 
-        others = [t for t in summary.values() if t["truck"] != truck and (t["kg"] + me["kg"]) <= t["capacity_kg"]]
+        # A merge also fills the host, so the empty space it saves on the host counts in its favour.
+        def waste_of(t: dict, fill: float) -> float:
+            return t["capacity_kg"] / 1000 * per_tonne * max(0.0, target - fill) / target
+
+        def merge_cost(t: dict) -> float:
+            return merge_extra + waste_of(t, (t["kg"] + me["kg"]) / t["capacity_kg"]) - waste_of(t, t["fill"])
+
+        others = [t for t in summary.values() if t["truck"] != truck and t["truck"] not in self.held and t["truck"] not in self.locked and (t["kg"] + me["kg"]) <= t["capacity_kg"]]
         merge = None
         if others:
-            host = max(others, key=lambda t: t["fill"])
+            host = min(others, key=merge_cost)
             merged_fill = (host["kg"] + me["kg"]) / host["capacity_kg"]
             late_margin = round(hold_margin * 0.25)
-            merge = {"name": "merge", "label": f"Merge into {host['truck']}", "with_truck": host["truck"], "load": round(merged_fill, 3), "truck_cost_inr": merge_extra, "margin_lost_inr": late_margin + short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "A quarter of stops arrive late. Needs a person's approval"}
+            saved = round(waste_of(host, host["fill"]) - waste_of(host, merged_fill))
+            merge = {"name": "merge", "label": f"Merge into {host['truck']}", "with_truck": host["truck"], "load": round(merged_fill, 3), "truck_cost_inr": round(merge_cost(host)), "margin_lost_inr": late_margin + short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": f"One truck fewer. Saves about Rs {saved} of empty space on {host['truck']}. A quarter of stops arrive late. Needs a person's approval"}
 
         options = [
             {"name": "go", "label": "Go now", "load": me["fill"], "truck_cost_inr": waste(me["fill"]), "margin_lost_inr": short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "Needs a person's approval, as it is under target" if me["fill"] < target else "Truck is full enough"},

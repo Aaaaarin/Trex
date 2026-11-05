@@ -338,3 +338,60 @@ def test_batch_code_shared_by_two_products_stays_separate(run):
     plan = dispatch.build(run, night, "V2", "go", "t")
     problems = [p for p in dispatch.validate(run, plan, night) if "Batch" in p]
     assert problems == []
+
+
+def test_merge_is_priced_with_the_space_it_saves_on_the_host(run):
+    priced = tools_for(run).price_options("V3")
+    options = {o["name"]: o for o in priced["options"]}
+    assert options["merge"]["with_truck"] == "V1"
+    assert options["merge"]["truck_cost_inr"] < 0, "the host's empty space saved is larger than the extra cost"
+    assert priced["recommended"] == "merge"
+
+
+def test_merge_chains_are_refused(run):
+    tools = tools_for(run)
+    approve(run, "merge", truck="V3", detail="V1")
+    assert tools.merge_truck("V3", "V1", "test")["status"] == "merged"
+    approve(run, "merge", truck="V1", detail="V2")
+    assert "carrying" in tools.merge_truck("V1", "V2", "test")["error"]
+
+
+def test_merge_into_a_held_truck_is_refused(run):
+    tools = tools_for(run)
+    approve(run, "hold", truck="V1")
+    tools.hold_truck("V1", "test")
+    approve(run, "merge", truck="V3", detail="V1")
+    assert "already held" in tools.merge_truck("V3", "V1", "test")["error"]
+
+
+def test_host_of_a_merge_cannot_be_held(run):
+    tools = tools_for(run)
+    approve(run, "merge", truck="V3", detail="V1")
+    tools.merge_truck("V3", "V1", "test")
+    approve(run, "hold", truck="V1")
+    assert "strand" in tools.hold_truck("V1", "test")["error"]
+
+
+def test_truck_with_no_stops_or_already_decided_gets_a_clear_answer(run):
+    tools = tools_for(run)
+    assert "no stops" in tools.price_options("V6")["error"]
+    approve(run, "merge", truck="V3", detail="V1")
+    tools.merge_truck("V3", "V1", "test")
+    assert "already merged" in tools.price_options("V3")["error"]
+
+
+def test_merged_stops_are_told_and_ship_on_the_host(run):
+    tools = tools_for(run)
+    moved = {ln.retailer for ln in tools.night().lines if ln.truck == "V3"}
+    approve(run, "merge", truck="V3", detail="V1")
+    assert tools.merge_truck("V3", "V1", "test")["retailers_told"] == len(moved)
+    plan = dispatch.build(run, tools.night(), "V1", "go", "t")
+    assert moved & {ln["retailer"] for ln in plan["lines"]}
+
+
+def test_screen_follows_a_merged_truck_to_its_host(run):
+    tools = tools_for(run)
+    tools.price_options("V3")
+    approve(run, "merge", truck="V3", detail="V1")
+    tools.merge_truck("V3", "V1", "test")
+    assert store.get_kv(run, "focus") == "V1"

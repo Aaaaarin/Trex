@@ -154,6 +154,9 @@ class Tools:
         return data
 
     def price_options(self, truck: str) -> dict:
+        problem = self._not_open(truck)
+        if problem:
+            return {"error": problem}
         p = self.night().price_options(truck)
         p["evidence_id"] = self._standin_evidence(f"options:{truck}:{dispatch.basis_of(self.run)}", f"Priced options for {truck}", p)
         if store.get_kv(self.run, f"options:{truck}") is None:
@@ -323,7 +326,21 @@ class Tools:
             store.log(self.run, "truck_decided", truck=truck, option=option, reason=reason, fill=result["fill"], version=result["version"])
         return result
 
+    def _not_open(self, truck: str) -> str | None:
+        """A truck can only be priced, held or merged if it has stops tonight and has not been held or merged already."""
+        status = dispatch.truck_status(self.run, truck)
+        if status:
+            return f"{truck} is already {status}"
+        if truck not in {t["truck"] for t in self.night().truck_summary()}:
+            return f"{truck} has no stops tonight"
+        return None
+
     def hold_truck(self, truck: str, reason: str) -> dict:
+        problem = self._not_open(truck)
+        if problem:
+            return {"error": problem}
+        if truck in store.get_kv(self.run, "merges", {}).values():
+            return {"error": f"{truck} is carrying a merged route, so holding it would strand those stops"}
         approval = dispatch.find_approval(self.run, "hold", truck=truck)
         if not approval:
             return {"error": f"Holding {truck} needs an approved hold decision for this truck"}
@@ -342,6 +359,11 @@ class Tools:
         return {"status": "held", "truck": truck, "retailers_told": len(stops)}
 
     def merge_truck(self, truck: str, into: str, reason: str) -> dict:
+        problem = self._not_open(truck) or self._not_open(into)
+        if problem:
+            return {"error": problem}
+        if truck in store.get_kv(self.run, "merges", {}).values():
+            return {"error": f"{truck} is already carrying a merged route, so it cannot merge away"}
         if not dispatch.find_approval(self.run, "merge", truck=truck, detail=into):
             return {"error": f"Merging {truck} into {into} needs an approved merge decision naming {into}"}
         for t in (truck, into):
@@ -349,14 +371,15 @@ class Tools:
             if plan and plan["status"] in ("committed", "issued"):
                 return {"error": f"{t} v{plan['version']} is already committed"}
         board = {t["truck"]: t for t in self.night().truck_summary()}
-        if into not in board or truck not in board:
-            return {"error": "Unknown truck"}
         if board[truck]["kg"] + board[into]["kg"] > board[into]["capacity_kg"]:
             return {"error": f"{into} cannot carry both loads"}
+        stops = sorted({ln.retailer for ln in self.night().lines if ln.truck == truck})
         merges = store.get_kv(self.run, "merges", {})
         merges[truck] = into
         store.set_kv(self.run, "merges", merges)
         store.set_kv(self.run, f"truck_status:{truck}", "merged")
+        if store.get_kv(self.run, "focus") == truck:
+            store.set_kv(self.run, "focus", into)
         for t in (truck, into):
             plan = dispatch.current_plan(self.run, t)
             if plan and plan["status"] == "frozen":
@@ -365,8 +388,10 @@ class Tools:
         decided[truck] = {"option": "merge", "into": into, "reason": reason}
         decided.pop(into, None)
         store.set_kv(self.run, "decided", decided)
-        store.log(self.run, "truck_merged", truck=truck, into=into, reason=reason)
-        return {"status": "merged", "truck": truck, "into": into, "instruction": f"Freeze {into}'s plan next"}
+        for retailer in stops:
+            channels.send(self.run, "retailer", retailer, f"Kal aapka maal gaadi {into} se aayega, thoda late ho sakta hai.", f"{self.run}:merge:{truck}:{retailer}")
+        store.log(self.run, "truck_merged", truck=truck, into=into, reason=reason, stops=len(stops))
+        return {"status": "merged", "truck": truck, "into": into, "retailers_told": len(stops), "instruction": f"Freeze {into}'s plan next. Preview it first, as the merged load may still be under target"}
 
     def write_orders(self, truck: str) -> dict:
         plan, problem = dispatch.checked_plan(self.run, self.night(), truck)
