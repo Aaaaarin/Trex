@@ -111,7 +111,11 @@ class Night:
         pair = d.groupby(["retailer_id", "retailer_type_hint", "route_id", "product_id", "product_name"], as_index=False).agg(bills=("invoice_id", "nunique"), kg=("kg", "sum"), pieces=("pieces", "sum"), net=("net_amount", "sum"), ref=("evidence_ref", "last"))
         pair = pair[(pair["kg"] > 0)]
         pair["kg_per_bill"] = pair["kg"] / pair["bills"]
-        pair = pair[[(r, p) not in ordering for r, p in zip(pair["retailer_id"], pair["product_id"])]]
+        if pair.empty:
+            return []
+        pair = pair.loc[pd.Series([(r, p) not in ordering for r, p in zip(pair["retailer_id"], pair["product_id"])], index=pair.index)]
+        if pair.empty:
+            return []
         pair = pair[pair["product_id"].map(lambda p: self.stock.get(p, 0) > 0)]
         pair["repeat"] = pair["bills"] >= 2
         pair = pair.sort_values(["repeat", "kg_per_bill"], ascending=False)

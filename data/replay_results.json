@@ -1,0 +1,578 @@
+{
+ "gaps": {
+  "gaps": 53,
+  "value_at_normal_rate_inr": 913331,
+  "value_after_flag_inr": 380852,
+  "top": [
+   {
+    "product": "P012",
+    "name": "Butter 150x100 Gm",
+    "flag_evening": "2026-10-22",
+    "gap_selling_days": 6,
+    "selling_days_left_after_flag": 3,
+    "value_at_normal_rate_inr": 199298,
+    "value_after_flag_inr": 99649
+   },
+   {
+    "product": "P006",
+    "name": "Butter 30x500 Gm CP",
+    "flag_evening": "2026-10-11",
+    "gap_selling_days": 7,
+    "selling_days_left_after_flag": 4,
+    "value_at_normal_rate_inr": 143144,
+    "value_after_flag_inr": 81797
+   },
+   {
+    "product": "P056",
+    "name": "Ice Cream Cup Butter Scotch 100ml (16x9)",
+    "flag_evening": "2026-10-06",
+    "gap_selling_days": 6,
+    "selling_days_left_after_flag": 3,
+    "value_at_normal_rate_inr": 61776,
+    "value_after_flag_inr": 30888
+   },
+   {
+    "product": "P046",
+    "name": "Special Milk 30x125 mL TP",
+    "flag_evening": "2026-10-17",
+    "gap_selling_days": 10,
+    "selling_days_left_after_flag": 7,
+    "value_at_normal_rate_inr": 59848,
+    "value_after_flag_inr": 41894
+   },
+   {
+    "product": "P010",
+    "name": "Dairy Creamer 2x10 Kg Jar",
+    "flag_evening": "2026-10-19",
+    "gap_selling_days": 3,
+    "selling_days_left_after_flag": 0,
+    "value_at_normal_rate_inr": 47813,
+    "value_after_flag_inr": 0
+   },
+   {
+    "product": "P084",
+    "name": "Ice Cream STK Kaju Kulfi 60ml(20x8)",
+    "flag_evening": "2026-10-08",
+    "gap_selling_days": 9,
+    "selling_days_left_after_flag": 6,
+    "value_at_normal_rate_inr": 43065,
+    "value_after_flag_inr": 28710
+   },
+   {
+    "product": "P052",
+    "name": "Ice Cream Tricone Chocolate 120ml (20x6)",
+    "flag_evening": "2026-10-10",
+    "gap_selling_days": 7,
+    "selling_days_left_after_flag": 4,
+    "value_at_normal_rate_inr": 41099,
+    "value_after_flag_inr": 23485
+   },
+   {
+    "product": "P053",
+    "name": "Ice Cream Tricone Butterscotch 120ml(20x6)",
+    "flag_evening": "2026-10-10",
+    "gap_selling_days": 7,
+    "selling_days_left_after_flag": 4,
+    "value_at_normal_rate_inr": 41099,
+    "value_after_flag_inr": 23485
+   }
+  ]
+ },
+ "trucks": {
+  "truck_days": 80,
+  "at_target_as_billed": 13,
+  "could_reach_target_with_offers": 40,
+  "rows": [
+   {
+    "date": "2026-10-05",
+    "truck": "V1",
+    "fill": 0.366,
+    "reachable_fill": 0.456
+   },
+   {
+    "date": "2026-10-05",
+    "truck": "V2",
+    "fill": 0.31,
+    "reachable_fill": 0.31
+   },
+   {
+    "date": "2026-10-05",
+    "truck": "V3",
+    "fill": 0.395,
+    "reachable_fill": 0.395
+   },
+   {
+    "date": "2026-10-06",
+    "truck": "V1",
+    "fill": 0.681,
+    "reachable_fill": 0.939
+   },
+   {
+    "date": "2026-10-06",
+    "truck": "V2",
+    "fill": 0.879,
+    "reachable_fill": 0.932
+   },
+   {
+    "date": "2026-10-07",
+    "truck": "V1",
+    "fill": 0.736,
+    "reachable_fill": 0.961
+   },
+   {
+    "date": "2026-10-07",
+    "truck": "V2",
+    "fill": 0.036,
+    "reachable_fill": 0.043
+   },
+   {
+    "date": "2026-10-07",
+    "truck": "V3",
+    "fill": 0.98,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-07",
+    "truck": "V4",
+    "fill": 0.402,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-08",
+    "truck": "V1",
+    "fill": 0.505,
+    "reachable_fill": 0.666
+   },
+   {
+    "date": "2026-10-08",
+    "truck": "V2",
+    "fill": 0.331,
+    "reachable_fill": 0.366
+   },
+   {
+    "date": "2026-10-08",
+    "truck": "V3",
+    "fill": 0.513,
+    "reachable_fill": 0.586
+   },
+   {
+    "date": "2026-10-08",
+    "truck": "V4",
+    "fill": 0.2,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-09",
+    "truck": "V1",
+    "fill": 0.523,
+    "reachable_fill": 0.759
+   },
+   {
+    "date": "2026-10-09",
+    "truck": "V2",
+    "fill": 1.0,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-09",
+    "truck": "V3",
+    "fill": 0.685,
+    "reachable_fill": 0.747
+   },
+   {
+    "date": "2026-10-10",
+    "truck": "V1",
+    "fill": 0.583,
+    "reachable_fill": 0.846
+   },
+   {
+    "date": "2026-10-10",
+    "truck": "V2",
+    "fill": 0.242,
+    "reachable_fill": 0.388
+   },
+   {
+    "date": "2026-10-10",
+    "truck": "V3",
+    "fill": 0.299,
+    "reachable_fill": 0.543
+   },
+   {
+    "date": "2026-10-10",
+    "truck": "V4",
+    "fill": 0.296,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-11",
+    "truck": "V1",
+    "fill": 0.011,
+    "reachable_fill": 0.128
+   },
+   {
+    "date": "2026-10-11",
+    "truck": "V4",
+    "fill": 0.345,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-12",
+    "truck": "V1",
+    "fill": 0.663,
+    "reachable_fill": 0.876
+   },
+   {
+    "date": "2026-10-12",
+    "truck": "V2",
+    "fill": 0.734,
+    "reachable_fill": 0.916
+   },
+   {
+    "date": "2026-10-12",
+    "truck": "V3",
+    "fill": 1.0,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-12",
+    "truck": "V4",
+    "fill": 0.031,
+    "reachable_fill": 0.619
+   },
+   {
+    "date": "2026-10-13",
+    "truck": "V1",
+    "fill": 0.055,
+    "reachable_fill": 0.282
+   },
+   {
+    "date": "2026-10-13",
+    "truck": "V2",
+    "fill": 0.733,
+    "reachable_fill": 0.868
+   },
+   {
+    "date": "2026-10-13",
+    "truck": "V3",
+    "fill": 0.404,
+    "reachable_fill": 0.758
+   },
+   {
+    "date": "2026-10-13",
+    "truck": "V4",
+    "fill": 0.25,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-14",
+    "truck": "V1",
+    "fill": 0.999,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-14",
+    "truck": "V2",
+    "fill": 0.561,
+    "reachable_fill": 0.843
+   },
+   {
+    "date": "2026-10-15",
+    "truck": "V1",
+    "fill": 0.489,
+    "reachable_fill": 0.681
+   },
+   {
+    "date": "2026-10-15",
+    "truck": "V2",
+    "fill": 0.277,
+    "reachable_fill": 0.348
+   },
+   {
+    "date": "2026-10-15",
+    "truck": "V3",
+    "fill": 0.505,
+    "reachable_fill": 0.677
+   },
+   {
+    "date": "2026-10-15",
+    "truck": "V4",
+    "fill": 0.154,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-16",
+    "truck": "V1",
+    "fill": 0.571,
+    "reachable_fill": 0.824
+   },
+   {
+    "date": "2026-10-16",
+    "truck": "V2",
+    "fill": 0.709,
+    "reachable_fill": 0.864
+   },
+   {
+    "date": "2026-10-16",
+    "truck": "V3",
+    "fill": 0.388,
+    "reachable_fill": 0.53
+   },
+   {
+    "date": "2026-10-17",
+    "truck": "V1",
+    "fill": 0.617,
+    "reachable_fill": 0.799
+   },
+   {
+    "date": "2026-10-17",
+    "truck": "V3",
+    "fill": 0.286,
+    "reachable_fill": 0.416
+   },
+   {
+    "date": "2026-10-18",
+    "truck": "V1",
+    "fill": 0.008,
+    "reachable_fill": 0.12
+   },
+   {
+    "date": "2026-10-18",
+    "truck": "V2",
+    "fill": 0.46,
+    "reachable_fill": 0.619
+   },
+   {
+    "date": "2026-10-18",
+    "truck": "V4",
+    "fill": 1.003,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-19",
+    "truck": "V1",
+    "fill": 0.01,
+    "reachable_fill": 0.179
+   },
+   {
+    "date": "2026-10-19",
+    "truck": "V4",
+    "fill": 0.26,
+    "reachable_fill": 0.864
+   },
+   {
+    "date": "2026-10-22",
+    "truck": "V1",
+    "fill": 0.674,
+    "reachable_fill": 0.909
+   },
+   {
+    "date": "2026-10-22",
+    "truck": "V2",
+    "fill": 0.64,
+    "reachable_fill": 0.886
+   },
+   {
+    "date": "2026-10-22",
+    "truck": "V3",
+    "fill": 0.699,
+    "reachable_fill": 0.872
+   },
+   {
+    "date": "2026-10-22",
+    "truck": "V4",
+    "fill": 0.057,
+    "reachable_fill": 0.111
+   },
+   {
+    "date": "2026-10-22",
+    "truck": "V5",
+    "fill": 0.071,
+    "reachable_fill": 0.147
+   },
+   {
+    "date": "2026-10-23",
+    "truck": "V1",
+    "fill": 0.013,
+    "reachable_fill": 0.216
+   },
+   {
+    "date": "2026-10-23",
+    "truck": "V2",
+    "fill": 0.824,
+    "reachable_fill": 0.948
+   },
+   {
+    "date": "2026-10-23",
+    "truck": "V4",
+    "fill": 0.126,
+    "reachable_fill": 0.881
+   },
+   {
+    "date": "2026-10-24",
+    "truck": "V1",
+    "fill": 0.917,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-24",
+    "truck": "V2",
+    "fill": 0.204,
+    "reachable_fill": 0.367
+   },
+   {
+    "date": "2026-10-24",
+    "truck": "V3",
+    "fill": 0.007,
+    "reachable_fill": 0.162
+   },
+   {
+    "date": "2026-10-24",
+    "truck": "V5",
+    "fill": 0.363,
+    "reachable_fill": 0.584
+   },
+   {
+    "date": "2026-10-25",
+    "truck": "V1",
+    "fill": 0.522,
+    "reachable_fill": 0.756
+   },
+   {
+    "date": "2026-10-25",
+    "truck": "V2",
+    "fill": 0.31,
+    "reachable_fill": 0.472
+   },
+   {
+    "date": "2026-10-25",
+    "truck": "V4",
+    "fill": 0.226,
+    "reachable_fill": 0.983
+   },
+   {
+    "date": "2026-10-26",
+    "truck": "V1",
+    "fill": 0.62,
+    "reachable_fill": 0.709
+   },
+   {
+    "date": "2026-10-26",
+    "truck": "V2",
+    "fill": 0.616,
+    "reachable_fill": 0.682
+   },
+   {
+    "date": "2026-10-26",
+    "truck": "V3",
+    "fill": 0.448,
+    "reachable_fill": 0.713
+   },
+   {
+    "date": "2026-10-26",
+    "truck": "V4",
+    "fill": 0.317,
+    "reachable_fill": 0.839
+   },
+   {
+    "date": "2026-10-26",
+    "truck": "V6",
+    "fill": 0.661,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-27",
+    "truck": "V1",
+    "fill": 0.759,
+    "reachable_fill": 0.807
+   },
+   {
+    "date": "2026-10-27",
+    "truck": "V2",
+    "fill": 0.665,
+    "reachable_fill": 0.846
+   },
+   {
+    "date": "2026-10-27",
+    "truck": "V3",
+    "fill": 0.106,
+    "reachable_fill": 0.401
+   },
+   {
+    "date": "2026-10-27",
+    "truck": "V4",
+    "fill": 0.41,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-27",
+    "truck": "V6",
+    "fill": 1.0,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-28",
+    "truck": "V1",
+    "fill": 1.001,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-28",
+    "truck": "V2",
+    "fill": 0.93,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-28",
+    "truck": "V3",
+    "fill": 0.429,
+    "reachable_fill": 0.509
+   },
+   {
+    "date": "2026-10-29",
+    "truck": "V1",
+    "fill": 0.091,
+    "reachable_fill": 0.21
+   },
+   {
+    "date": "2026-10-30",
+    "truck": "V1",
+    "fill": 0.806,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-30",
+    "truck": "V2",
+    "fill": 0.451,
+    "reachable_fill": 0.64
+   },
+   {
+    "date": "2026-10-30",
+    "truck": "V5",
+    "fill": 1.0,
+    "reachable_fill": 1.0
+   },
+   {
+    "date": "2026-10-31",
+    "truck": "V1",
+    "fill": 0.232,
+    "reachable_fill": 0.539
+   },
+   {
+    "date": "2026-10-31",
+    "truck": "V4",
+    "fill": 0.335,
+    "reachable_fill": 1.0
+   }
+  ],
+  "note": "Reachable assumes every offered retailer says yes, so it is an upper limit"
+ },
+ "stock_ranges": {
+  "pairs": 144,
+  "predicted_and_bought": 67,
+  "predicted_not_bought": 77,
+  "not_predicted_but_bought": 0,
+  "not_predicted_not_bought": 0,
+  "accuracy": 0.465,
+  "baseline_everyone_buys_weekly": 0.465
+ }
+}
