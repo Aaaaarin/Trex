@@ -135,7 +135,9 @@ class Tools:
     def price_options(self, truck: str) -> dict:
         p = self.night().price_options(truck)
         p["evidence_id"] = self._standin_evidence(f"options:{truck}:{len(self._extras())}", f"Priced options for {truck}", p)
-        store.set_kv(self.run, f"options:{truck}", p)
+        if store.get_kv(self.run, f"options:{truck}") is None:
+            store.set_kv(self.run, f"options:{truck}", p)
+        store.set_kv(self.run, f"options_latest:{truck}", p)
         store.set_kv(self.run, "focus", truck)
         if store.get_kv(self.run, f"start_fill:{truck}") is None:
             store.set_kv(self.run, f"start_fill:{truck}", p["fill"])
@@ -156,7 +158,9 @@ class Tools:
             o["evidence_id"] = store.add_evidence(self.run, "estimate", f"offer:{o['retailer']}:{o['product']}", f"Why offer {o['product']} to {o['retailer']}", o)
         data = {"truck": truck, "needs_kg": round(gap), "asking": len(chosen), "not_asking": len(candidates) - len(chosen), "offers": chosen, "max_discount_inr_per_pack": standin("max_discount_inr_per_pack"), "note": "Offer whole cases. Offer a discount only where discount_inr_per_piece is above zero"}
         data["discount_evidence_id"] = self._standin_evidence("max_discount", "Allowed discount, stand-in", {"max_discount_inr_per_pack": standin("max_discount_inr_per_pack")})
-        store.set_kv(self.run, f"offers:{truck}", {o["retailer"]: o for o in chosen})
+        known = store.get_kv(self.run, f"offers:{truck}", {})
+        known.update({o["retailer"]: o for o in chosen if o["retailer"] not in known})
+        store.set_kv(self.run, f"offers:{truck}", known)
         return data
 
     def _add_extra(self, retailer: str, product: str, pieces: int, source: str, evidence_id: str, route: str | None = None) -> dict:
@@ -176,10 +180,12 @@ class Tools:
         night = self.night()
         promised = sum(ln.pieces for ln in night.lines if ln.product == product)
         stock = night.stock.get(product)
-        approved = store.rows("select id from decisions where run=? and answer is not null and lower(answer) like 'approve%'", (self.run,))
-        if stock is not None and promised + pieces > stock and not approved:
+        if stock is not None and promised + pieces > stock:
             data = {"product": product, "stock_pieces": stock, "already_promised_pieces": promised, "requested_pieces": pieces, "standin": True}
             eid = self._standin_evidence(f"scarcity:{product}", f"Stock against promises for {product}", data)
+            approved = store.rows("select id from decisions where run=? and answer is not null and lower(answer) like 'approve%' and evidence like ?", (self.run, f"%{eid}%"))
+            if approved:
+                return self._add_extra(retailer, product, pieces, "request", evidence_id)
             return {"needs_decision": True, "reason": "This takes stock already promised to other retailers. Use request_decision with these numbers, then end your turn. Call add_request again after approval.", "evidence_id": eid, **data}
         return self._add_extra(retailer, product, pieces, "request", evidence_id)
 

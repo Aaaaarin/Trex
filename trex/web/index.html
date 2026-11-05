@@ -741,6 +741,7 @@ function viewTruck() {
 /* ---------- Sell to fill ---------- */
 function gaugeStart(t) {
   const seen = [];
+  if (S.start_fill != null && S.focus === t.truck) return num(S.start_fill);
   const first = (S.load_events || []).find((e) => e.truck === t.truck);
   if (first) seen.push(num(first.fill));
   if (S.options && S.options.truck === t.truck) seen.push(num(S.options.fill));
