@@ -58,10 +58,10 @@ def job_for(run: str, truck: str) -> dict | None:
     return store.get_kv(run, _key(truck, plan["version"])) if plan else None
 
 
-def _send(run: str, role: str, recipient: str, text: str, key: str) -> None:
+def _send(run: str, role: str, recipient: str, text: str, key: str, buttons: list | None = None) -> None:
     """Send without moving last_live, so a phone reply to an earlier question still reaches the right role."""
     before = store.get_kv(run, "last_live")
-    result = channels.send(run, role, recipient, text, key)
+    result = channels.send(run, role, recipient, text, key, None, buttons)
     if result.get("channel") == "telegram":
         store.set_kv(run, "last_live", before or {})
 
@@ -140,6 +140,12 @@ def _open_jobs(run: str, now: float) -> None:
         _start_round(run, job, now)
 
 
+def _next_report(run: str) -> str:
+    """The depot time the next assigned truck gets. Trucks report one after another, so it moves as others are assigned."""
+    taken = sum(1 for j in jobs(run) if j["status"] == "assigned")
+    return _clock(_minutes(CONFIG["report_time"]) + taken * CONFIG["report_stagger_minutes"])
+
+
 def _start_round(run: str, job: dict, now: float) -> None:
     ranked = _ranked(run, job)
     if not ranked:
@@ -152,8 +158,8 @@ def _start_round(run: str, job: dict, now: float) -> None:
     _save(run, job)
     store.log(run, "job_offered", truck=job["truck"], version=job["version"], round=job["round"], pay=job["pay"], drivers=asked)
     for d in asked:
-        text = f"Naya kaam: gaadi {job['truck']}, {job['stops']} stop, {job['kg']} kg. Depot se {ROSTER[d]['km_to_depot']} km. Pay Rs {job['pay']} (stand-in). Haan ya nahi?"
-        _send(run, _driver_role(run, d), d, text, f"{run}:offer:{job['truck']}:v{job['version']}:r{job['round']}:{d}")
+        text = f"Naya kaam: gaadi {job['truck']}, {job['stops']} stop, {job['kg']} kg. Report {_next_report(run)} (stand-in, pakka time haan ke baad). Depot se {ROSTER[d]['km_to_depot']} km. Pay Rs {job['pay']} (stand-in). Accept ya Reject dabao, ya likho: /driver {d} haan"
+        _send(run, _driver_role(run, d), d, text, f"{run}:offer:{job['truck']}:v{job['version']}:r{job['round']}:{d}", channels.offer_buttons(run, job, d))
 
 
 def _no_driver(run: str, job: dict) -> None:
@@ -228,9 +234,7 @@ def _default_assign(run: str, job: dict, now: float) -> None:
 def _assign(run: str, job: dict, driver: str, how: str, now: float) -> None:
     if not _plan_live(run, job):
         return _cancel(run, job, "Plan changed before a driver was assigned")
-    taken = sum(1 for j in jobs(run) if j["status"] == "assigned")
-    report = _minutes(CONFIG["report_time"]) + taken * CONFIG["report_stagger_minutes"]
-    job.update({"status": "assigned", "driver": driver, "how": how, "report_time": _clock(report), "assigned_at": now})
+    job.update({"status": "assigned", "driver": driver, "how": how, "report_time": _next_report(run), "assigned_at": now})
     _save(run, job)
     store.add_evidence(run, "standin", f"assignment:{job['truck']}:v{job['version']}:{driver}", "Driver assignment", {"truck": job["truck"], "version": job["version"], "driver": driver, "how": how, "pay_inr": job["pay"], "report_time": job["report_time"]}, standin=True)
     store.log(run, "driver_assigned", truck=job["truck"], version=job["version"], driver=driver, how=how, pay=job["pay"], report_time=job["report_time"])
@@ -240,7 +244,7 @@ def _assign(run: str, job: dict, driver: str, how: str, now: float) -> None:
     picks = _pick_list(run, job["truck"])
     head = "; ".join(f"{p['product_name']} batch {p['batch']}: {p['pieces']}" for p in picks[:6])
     more = f"; aur {len(picks) - 6} line screen par" if len(picks) > 6 else ""
-    _send(run, "dispatcher", DISPATCHER, f"Kal gaadi {job['truck']}: driver {driver}, {job['report_time']} par (stand-in). {job['stops']} stop, {job['kg']} kg. Dena hai: {head}{more}. Aane par /gate {job['truck']} in, jaane par /gate {job['truck']} out.", f"{tag}:dispatcher")
+    _send(run, "dispatcher", DISPATCHER, f"Kal gaadi {job['truck']}: driver {driver}, {job['report_time']} par (stand-in). {job['stops']} stop, {job['kg']} kg. Dena hai: {head}{more}. Aane par /gate {job['truck']} in, jaane par /gate {job['truck']} out.", f"{tag}:dispatcher", channels.gate_buttons(run, job))
     if store.get_kv(run, "morning_started"):
         _sim_gates(run, job)
 
@@ -350,7 +354,7 @@ def morning(run: str, now: float | None = None) -> None:
         for job in jobs(run):
             if job["status"] == "assigned" and "out" not in job["gate"]:
                 if _dispatcher_live(run):
-                    _send(run, "dispatcher", DISPATCHER, f"Gaadi {job['truck']}: driver {job['driver']} {job['report_time']} par aayega. /gate {job['truck']} in", f"{run}:morning:{job['truck']}:v{job['version']}")
+                    _send(run, "dispatcher", DISPATCHER, f"Gaadi {job['truck']}: driver {job['driver']} {job['report_time']} par aayega. /gate {job['truck']} in", f"{run}:morning:{job['truck']}:v{job['version']}", channels.gate_buttons(run, job))
                 else:
                     _sim_gates(run, job)
 
