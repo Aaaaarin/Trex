@@ -1,0 +1,277 @@
+"""The dispatch safeguards. No model calls: these exercise the tools directly."""
+import json
+
+import pytest
+
+from trex import dispatch, orders_api, store
+from trex.tools import Tools
+
+EVENING, DAY = "2026-10-15", "2026-10-16"
+_n = [0]
+
+
+@pytest.fixture
+def run():
+    _n[0] += 1
+    name = f"d{_n[0]}"
+    store.create_run(name, "test")
+    return name
+
+
+def tools_for(run) -> Tools:
+    return Tools(run, EVENING, DAY)
+
+
+def approve(run, kind, **scope):
+    full = {"kind": kind, "truck": "", "retailer": "", "product": "", "pieces": 0, "detail": "", "basis": dispatch.basis_of(run, scope.get("truck") or None), **scope}
+    did = f"{run}-{kind}-{_n[0]}-{len(store.rows('select id from decisions where run=?', (run,)))}"
+    store.execute("insert into decisions(id, run, ts, question, options, answer, answered_by, evidence, scope) values(?,?,?,?,?,?,?,?,?)", (did, run, 0, "q", "[]", "Approve", "test", "[]", json.dumps(full)))
+    return did
+
+
+def frozen_v3(run):
+    """V3 is far under target, so it needs an approval to dispatch."""
+    tools = tools_for(run)
+    approve(run, "under_target", truck="V3")
+    result = tools.freeze_plan("V3", "go", "test")
+    assert result["status"] == "frozen", result
+    return tools, result
+
+
+def test_under_target_is_refused_without_approval(run):
+    result = tools_for(run).freeze_plan("V3", "go", "test")
+    assert "error" in result
+    assert any("under the" in p for p in result["problems"])
+    assert dispatch.current_plan(run, "V3") is None
+
+
+def test_approval_for_another_truck_does_not_count(run):
+    approve(run, "under_target", truck="V2")
+    assert "error" in tools_for(run).freeze_plan("V3", "go", "test")
+
+
+def test_approval_stops_counting_when_the_plan_changes(run):
+    approve(run, "under_target", truck="V3")
+    store.set_kv(run, "extras", [{"truck": "V3", "route": "R13", "retailer": "R-901", "retailer_type": "horeca", "product": "P001", "pieces": 1, "source": "request", "evidence": "x"}])
+    assert "error" in tools_for(run).freeze_plan("V3", "go", "test")
+
+
+def test_going_under_target_works_with_exact_approval(run):
+    _, result = frozen_v3(run)
+    assert result["version"] == 1 and result["fill"] < 0.8
+
+
+def test_later_tools_read_the_same_frozen_plan(run):
+    tools, result = frozen_v3(run)
+    written = tools.write_orders("V3")
+    plan = dispatch.current_plan(run, "V3")
+    assert written["version"] == result["version"]
+    rows = store.rows("select payload from test_orders where run=?", (run,))
+    assert rows and all(json.loads(r["payload"])["plan_hash"] == plan["hash"] for r in rows)
+    assert len(rows) == len(plan["lines"])
+    issued = tools.issue_load_sheet("V3")
+    assert issued["version"] == result["version"]
+    sheet = store.get_kv(run, "sheet:V3")
+    assert {(s["retailer"], s["product"], s["pieces"]) for s in sheet} == {(ln["retailer"], ln["product"], ln["pieces"]) for ln in plan["lines"]}
+
+
+def test_a_tampered_plan_is_refused(run):
+    tools, _ = frozen_v3(run)
+    row = store.rows("select data from plans where run=?", (run,))[0]
+    data = json.loads(row["data"])
+    data["lines"][0]["pieces"] += 1000
+    store.execute("update plans set data=? where run=?", (json.dumps(data, sort_keys=True), run))
+    result = tools.write_orders("V3")
+    assert "hash" in result["error"]
+    assert orders_api.count(run) == 0
+
+
+def test_issuing_needs_saved_orders_first(run):
+    tools, _ = frozen_v3(run)
+    assert "error" in tools.issue_load_sheet("V3")
+
+
+def test_failed_write_blocks_only_that_promise(run):
+    tools, _ = frozen_v3(run)
+    orders_api.inject(run, "409_stale_stock", 1)
+    written = tools.write_orders("V3")
+    assert written["counts"].get("conflict") == 1 and len(written["blocked_lines"]) == 1
+    issued = tools.issue_load_sheet("V3")
+    assert len(issued["blocked_lines"]) == 1
+    plan = dispatch.current_plan(run, "V3")
+    assert issued["lines"] == len(plan["lines"]) - 1
+    blocked = issued["blocked_lines"][0]
+    assert not any(s["retailer"] == blocked[0] and s["product"] == blocked[1] for s in store.get_kv(run, "sheet:V3"))
+
+
+def test_retry_after_failed_write_saves_only_the_missing_line(run):
+    tools, _ = frozen_v3(run)
+    orders_api.inject(run, "409_stale_stock", 1)
+    tools.write_orders("V3")
+    again = tools.write_orders("V3")
+    assert again["blocked_lines"] == []
+    assert orders_api.count(run) == len(dispatch.current_plan(run, "V3")["lines"])
+
+
+def test_late_yes_after_commit_is_a_proposal_not_a_change(run):
+    tools, _ = frozen_v3(run)
+    tools.write_orders("V3")
+    before = dispatch.current_plan(run, "V3")["hash"]
+    extras_before = store.get_kv(run, "extras", [])
+    result = tools._add_extra("R-901", "P001", 12, "offer", "x", "R13")
+    assert result["status"] == "proposed_revision" and result["applied"] is False
+    assert dispatch.current_plan(run, "V3")["hash"] == before
+    assert store.get_kv(run, "extras", []) == extras_before
+    assert len(store.get_kv(run, "revisions:V3")) == 1
+
+
+def test_change_before_commit_replaces_the_frozen_version(run):
+    tools, result = frozen_v3(run)
+    tools._add_extra("R-901", "P001", 12, "offer", "x", "R13")
+    assert dispatch.current_plan(run, "V3") is None
+    versions = store.rows("select status from plans where run=? and truck='V3'", (run,))
+    assert versions[0]["status"] == "superseded"
+
+
+def test_hold_needs_approval_and_stops_dispatch(run):
+    tools = tools_for(run)
+    assert "error" in tools.hold_truck("V3", "test")
+    approve(run, "hold", truck="V3")
+    assert tools.hold_truck("V3", "test")["status"] == "held"
+    assert "error" in tools.freeze_plan("V3", "go", "test")
+    assert "error" in tools.write_orders("V3")
+    assert "error" in tools.issue_load_sheet("V3")
+    assert orders_api.count(run) == 0
+    assert "error" in tools._add_extra("R-901", "P001", 12, "offer", "x", "R13")
+
+
+def test_held_truck_is_not_sent_out_on_the_delivery_day(run):
+    from trex import orchestrator
+
+    tools = tools_for(run)
+    approve(run, "hold", truck="V3")
+    tools.hold_truck("V3", "test")
+    assert orchestrator.run_tomorrow(run)["simulated_drops"] == 0
+
+
+def test_merge_needs_approval_naming_the_host(run):
+    tools = tools_for(run)
+    approve(run, "merge", truck="V3", detail="V9")
+    assert "error" in tools.merge_truck("V3", "V2", "test")
+    approve(run, "merge", truck="V3", detail="V2")
+    result = tools.merge_truck("V3", "V2", "test")
+    if "error" in result:
+        assert "cannot carry" in result["error"]
+        return
+    assert result["status"] == "merged"
+    assert "V3" not in {t["truck"] for t in tools.night().truck_summary()}
+    assert "error" in tools.freeze_plan("V3", "go", "test")
+
+
+def test_merge_that_does_not_fit_is_refused(run):
+    tools = tools_for(run)
+    approve(run, "merge", truck="V1", detail="V3")
+    assert "cannot carry" in tools.merge_truck("V1", "V3", "test")["error"]
+
+
+def test_offers_reserve_stock_so_rounds_cannot_compete(run):
+    tools = tools_for(run)
+    tools.plan_offers("V2")
+    offer = next(iter(store.get_kv(run, "offers:V2").values()))
+    free_before = tools.night().free_stock()[offer["product"]]
+    tools.send_offer(offer["retailer"], offer["product"], offer["pieces"], offer["discount_inr_per_piece"], "Kal bhej dein?", [])
+    assert tools.night().free_stock()[offer["product"]] == free_before - offer["pieces"]
+
+
+def test_offer_reservation_is_released_on_no(run):
+    tools = tools_for(run)
+    tools.plan_offers("V2")
+    offer = next(iter(store.get_kv(run, "offers:V2").values()))
+    free_before = tools.night().free_stock()[offer["product"]]
+    tools.send_offer(offer["retailer"], offer["product"], offer["pieces"], 0, "Kal bhej dein?", [])
+    tools.release_offer(offer["retailer"], offer["product"], "said no", "x")
+    assert tools.night().free_stock()[offer["product"]] == free_before
+
+
+def test_offer_over_the_allowed_discount_is_refused(run):
+    tools = tools_for(run)
+    tools.plan_offers("V2")
+    offer = next(o for o in store.get_kv(run, "offers:V2").values())
+    result = tools.send_offer(offer["retailer"], offer["product"], offer["pieces"], offer["discount_inr_per_piece"] + 100, "Kal bhej dein?", [])
+    assert "discount" in result["error"]
+
+
+def test_unplanned_offer_is_refused(run):
+    assert "plan_offers" in tools_for(run).send_offer("R-101", "P001", 5, 0, "Kal bhej dein?", [])["error"]
+
+
+def test_taking_promised_stock_needs_approval_for_that_exact_quantity(run):
+    tools = tools_for(run)
+    msg = store.add_evidence(run, "message", "m", "m", {"sender": "lead", "role": "lead", "text": "x"})
+    first = tools.add_request("R-120", "P006", 500, msg)
+    assert first["needs_decision"]
+    approve(run, "take_promised_stock", retailer="R-120", product="P006", pieces=400)
+    assert tools.add_request("R-120", "P006", 500, msg)["needs_decision"]
+    approve(run, "take_promised_stock", retailer="R-120", product="P006", pieces=500)
+    assert "fill" in tools.add_request("R-120", "P006", 500, msg)
+
+
+def test_validator_refuses_stock_over_the_record(run):
+    tools = tools_for(run)
+    plan = dispatch.build(run, tools.night(), "V3", "go", "t")
+    plan["lines"][0]["pieces"] = 10_000_000
+    plan["lines"][0]["batches"][0]["pieces"] = 10_000_000
+    problems = dispatch.validate(run, plan, tools.night())
+    assert any("stock" in p for p in problems)
+    assert any("capacity" in p or "requested" in p for p in problems)
+
+
+def test_validator_refuses_unassigned_batches(run):
+    tools = tools_for(run)
+    plan = dispatch.build(run, tools.night(), "V3", "go", "t")
+    plan["lines"][0]["batches"] = []
+    assert any("batches do not add up" in p for p in dispatch.validate(run, plan, tools.night()))
+
+
+def test_validator_refuses_an_offer_with_no_reply(run):
+    tools = tools_for(run)
+    plan = dispatch.build(run, tools.night(), "V3", "go", "t")
+    plan["lines"][0]["source"] = "offer"
+    plan["lines"][0]["evidence"] = "nothing"
+    assert any("no reply" in p for p in dispatch.validate(run, plan, tools.night()))
+
+
+def test_drop_rules_on_an_issued_plan(run):
+    tools, _ = frozen_v3(run)
+    tools.write_orders("V3")
+    tools.issue_load_sheet("V3")
+    stop = store.get_kv(run, "sheet:V3")[0]["retailer"]
+    wrong_sender = store.add_evidence(run, "message", "a", "m", {"sender": "driver-V2", "role": "driver", "text": f"{stop} delivered"})
+    assert "error" in tools.record_drop("V3", stop, "delivered", wrong_sender)
+    wrong_stop = store.add_evidence(run, "message", "b", "m", {"sender": "driver-V3", "role": "driver", "text": "R-000 delivered", "retailer": "R-000"})
+    assert "error" in tools.record_drop("V3", stop, "delivered", wrong_stop)
+    not_on_plan = store.add_evidence(run, "message", "c", "m", {"sender": "driver-V3", "role": "driver", "text": "R-000 delivered", "retailer": "R-000"})
+    assert "error" in tools.record_drop("V3", "R-000", "delivered", not_on_plan)
+    good = store.add_evidence(run, "message", "d", "m", {"sender": "driver-V3", "role": "driver", "text": f"{stop} delivered", "retailer": stop, "photo": True})
+    closed = tools.record_drop("V3", stop, "delivered", good)
+    assert closed["status"] == "delivered"
+    assert store.get_kv(run, "drops")[stop]["plan_version"] == 1
+
+
+def test_drop_before_issue_is_refused(run):
+    tools, _ = frozen_v3(run)
+    msg = store.add_evidence(run, "message", "e", "m", {"sender": "driver-V3", "role": "driver", "text": "R-1 delivered", "retailer": "R-1"})
+    assert "no issued plan" in tools.record_drop("V3", "R-1", "delivered", msg)["error"]
+
+
+def test_going_under_target_can_be_the_cheapest_priced_option(run):
+    options = tools_for(run).price_options("V3")["options"]
+    assert {"go", "sell_to_fill", "hold"} <= {o["name"] for o in options}
+    sell = next(o for o in options if o["name"] == "sell_to_fill")
+    assert "expect about" in sell["note"]
+
+
+def test_change_on_another_truck_does_not_cancel_an_approval(run):
+    tools, _ = frozen_v3(run)
+    store.set_kv(run, "extras", [{"truck": "V2", "route": "R04", "retailer": "R-120", "retailer_type": "horeca", "product": "P001", "pieces": 1, "source": "request", "evidence": "x", "needs_approval": False}])
+    assert tools.write_orders("V3").get("version") == 1

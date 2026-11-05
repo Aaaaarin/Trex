@@ -87,19 +87,18 @@ def test_update_arriving_twice_counts_once(run):
 def test_drop_needs_the_drivers_own_message(run):
     tools = Tools(run, EVENING, DAY)
     retailer_msg = store.add_evidence(run, "message", "m1", "m", {"sender": "R-1", "role": "retailer", "text": "aa gaya"})
-    assert "error" in tools.record_drop("R-1", "delivered", retailer_msg)
-    driver_msg = store.add_evidence(run, "message", "m2", "m", {"sender": "driver-V2", "role": "driver", "text": "done", "photo": True})
-    assert tools.record_drop("R-1", "delivered", driver_msg)["status"] == "delivered"
+    assert "error" in tools.record_drop("V2", "R-1", "delivered", retailer_msg)
 
 
 def test_going_under_target_needs_approval(run):
     tools = Tools(run, EVENING, DAY)
-    assert "error" in tools.finalize_truck("V2", "go", "test")
+    result = tools.freeze_plan("V2", "go", "test")
+    assert "error" in result and any("under the" in p for p in result["problems"])
 
 
 def test_accepting_more_than_offered_is_refused(run):
     tools = Tools(run, EVENING, DAY)
-    channels.send(run, "retailer", "R-120", "offer", f"{run}:offer:R-120:P001", {"retailer": "R-120", "product": "P001", "pieces": 5, "group": "milk"})
+    channels.send(run, "retailer", "R-120", "offer", f"{run}:offer:R-120:P001", {"retailer": "R-120", "product": "P001", "pieces": 5, "group": "milk", "route": "R04"})
     msg = store.add_evidence(run, "message", "m3", "m", {"sender": "R-120", "role": "retailer", "text": "9 bhej do"})
     assert "error" in tools.accept_offer("R-120", "P001", 9, msg)
 

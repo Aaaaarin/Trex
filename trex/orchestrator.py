@@ -4,7 +4,7 @@ import threading
 import time
 import traceback
 
-from . import channels, store
+from . import channels, dispatch, store
 from .agent import Agent, has_pending_work
 from .config import DEMO
 
@@ -118,6 +118,9 @@ def run_tomorrow(run: str, failed_share: int = 11) -> dict:
     decided = store.get_kv(run, "decided", {})
     sent = 0
     for truck in decided:
+        plan = dispatch.current_plan(run, truck)
+        if not plan or plan["status"] != "issued":
+            continue  # held, merged or not yet issued: nothing is out for delivery
         sheet = store.get_kv(run, f"sheet:{truck}", [])
         stops = sorted({row["retailer"] for row in sheet})
         for i, retailer in enumerate(stops):

@@ -726,6 +726,7 @@ function viewTruck() {
     ${options ? `<div class="opts">${(options.options || []).map((o) => optionCard(o, options.recommended, t.decision && t.decision.option)).join("")}</div>` : `<p class="quiet">Not priced yet</p>`}
     <div class="split" style="margin-top:6px">
       <section>
+        ${planBar()}
         ${deliveryBar(sheet)}
         <h2 class="sec-title">Stops</h2>
         ${sheet && sheet.length ? stopsBlock(sheet) : `<p class="muted">Stops appear when the load sheet is issued</p>`}
@@ -750,6 +751,24 @@ function gaugeStart(t) {
   const v = Math.min(...seen);
   gauge.start = gauge.start === null ? v : Math.min(gauge.start, v);
   return gauge.start;
+}
+function planBar() {
+  const p = S.plan;
+  if (!p) return "";
+  const label = { frozen: "Frozen", committed: "Orders written", issued: "Issued", superseded: "Replaced" }[p.status] || p.status;
+  const blocked = (S.safeguards || []).filter((e) => e.kind === "promise_blocked").length;
+  const rejected = (S.safeguards || []).filter((e) => e.kind === "plan_rejected").length;
+  const revisions = (p.revisions || []).length;
+  const notes = [
+    `Plan v${num(p.version)}`,
+    `${esc(label)}`,
+    `Validated`,
+    rejected ? `${rejected} refused before this` : "",
+    blocked ? `${blocked} not promised, order failed` : "",
+    revisions ? `${revisions} proposed change waiting` : "",
+    (p.unplaced || []).length ? `${p.unplaced.length} short of a suitable batch` : "",
+  ].filter(Boolean);
+  return `<p class="muted" data-key="plan-bar" style="margin:0 0 14px">${notes.join(" · ")}</p>`;
 }
 function deliveryBar(sheet) {
   if (!sheet || !sheet.length) return "";

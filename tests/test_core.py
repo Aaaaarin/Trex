@@ -51,8 +51,13 @@ def test_hotel_comes_first_when_stock_is_scarce():
 
 def test_truck_capacity_holds():
     lines = [Line(f"k{i}", "T", "R", f"r{i}", "kirana", f"P{i}", "P", 100, 1.0, 10.0, "order proxy") for i in range(3)]
-    alloc = solve(lines, {}, {"T": 150})["allocated"]
-    assert sum(alloc.values()) <= 150
+    alloc = solve(lines, {f"P{i}": 1000 for i in range(3)}, {"T": 150})["allocated"]
+    assert sum(alloc.values()) == 150
+
+
+def test_product_with_no_stock_record_gets_nothing():
+    lines = [Line("k", "T", "R", "r", "kirana", "NOSTOCK", "P", 10, 1.0, 10.0, "order proxy")]
+    assert solve(lines, {}, {"T": 150})["allocated"]["k"] == 0
 
 
 def test_same_input_same_plan():

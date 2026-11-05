@@ -87,6 +87,14 @@
         "P006": 0.6
       },
       "note": "Share of plan-day orders in stock. Set to create the scarce butter case, as no stock data exists"
+    },
+    "offer_ttl_seconds": {
+      "value": 1800,
+      "note": "How long an unanswered offer holds its stock"
+    },
+    "offer_acceptance_rate": {
+      "value": 0.6,
+      "note": "Placeholder share of offers accepted. Real acceptance is unproven"
     }
   }
 }

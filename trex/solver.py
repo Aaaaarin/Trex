@@ -46,8 +46,8 @@ def solve(lines: list[Line], stock: dict[str, int], capacity: dict[str, float], 
         objective.append(rest[i] * value * w)
     for product in {ln.product for ln in lines}:
         idx = [i for i, ln in enumerate(lines) if ln.product == product]
-        if product in stock:
-            model.add(sum(first[i] + rest[i] for i in idx) <= stock[product])
+        # A product with no stock record has no stock. Absence is never treated as unlimited.
+        model.add(sum(first[i] + rest[i] for i in idx) <= max(0, stock.get(product, 0)))
     for truck in {ln.truck for ln in lines}:
         idx = [i for i, ln in enumerate(lines) if ln.truck == truck]
         cap = round(capacity[truck] * 100)
@@ -76,7 +76,7 @@ def greedy(lines: list[Line], stock: dict[str, int], capacity: dict[str, float])
     for share in (TIER_FIRST_SHARE, 1.0):
         for ln in order:
             want = math.ceil(ln.pieces * share) - alloc[ln.key]
-            can = min(want, left.get(ln.product, want), int(room[ln.truck] / max(ln.kg_per_piece, 0.001)))
+            can = min(want, max(0, left.get(ln.product, 0)), int(room[ln.truck] / max(ln.kg_per_piece, 0.001)))
             if can > 0:
                 alloc[ln.key] += can
                 if ln.product in left:

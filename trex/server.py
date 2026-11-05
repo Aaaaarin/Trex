@@ -136,6 +136,9 @@ def post_reset() -> dict:
     for runner in orchestrator.RUNNERS.values():
         runner.stop()
     orchestrator.RUNNERS.clear()
-    for table in ("runs", "events", "evidence", "outbox", "inbox", "turns", "decisions", "kv", "test_orders"):
+    global_chat = store.get_kv("_global", "telegram_chat")
+    for table in ("runs", "events", "evidence", "outbox", "inbox", "turns", "decisions", "kv", "test_orders", "plans", "reservations"):
         store.execute(f"delete from {table}")
+    if global_chat:
+        store.set_kv("_global", "telegram_chat", global_chat)
     return {"ok": True, "plan_date": DEMO["plan_date"]}

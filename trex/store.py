@@ -17,9 +17,11 @@ create table if not exists evidence(id text primary key, run text, kind text, re
 create table if not exists outbox(key text primary key, run text, role text, recipient text, text text, status text, ts real, channel text, data text);
 create table if not exists inbox(seq integer primary key autoincrement, run text, ts real, sender text, role text, text text, simulated integer, dedupe text unique, handled integer default 0, data text);
 create table if not exists turns(seq integer primary key autoincrement, run text, role text, content text);
-create table if not exists decisions(id text primary key, run text, ts real, question text, options text, answer text, answered_by text, evidence text);
+create table if not exists decisions(id text primary key, run text, ts real, question text, options text, answer text, answered_by text, evidence text, scope text);
 create table if not exists kv(run text, key text, value text, primary key(run, key));
 create table if not exists test_orders(key text primary key, run text, payload text, ts real);
+create table if not exists plans(run text, truck text, version integer, status text, data text, hash text, ts real, primary key(run, truck, version));
+create table if not exists reservations(key text primary key, run text, truck text, retailer text, product text, pieces integer, status text, ts real, discount integer);
 """
 
 
@@ -32,6 +34,8 @@ def conn() -> sqlite3.Connection:
             _conn.row_factory = sqlite3.Row
             _conn.execute("pragma journal_mode=wal")
             _conn.executescript(SCHEMA)
+            if not any(c["name"] == "scope" for c in _conn.execute("pragma table_info(decisions)").fetchall()):
+                _conn.execute("alter table decisions add column scope text")
         return _conn
 
 

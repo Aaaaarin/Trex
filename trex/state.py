@@ -2,6 +2,7 @@
 import json
 
 from . import store
+from . import dispatch
 from .agent import Agent  # noqa: F401  (keeps import order predictable for the server)
 from .config import ASSUMPTIONS, DEMO, standin
 from .ledger import Ledger
@@ -16,11 +17,16 @@ _night_cache: dict[str, tuple[str, Night]] = {}
 
 
 def _night(run: str | None) -> Night:
-    extras = store.get_kv(run, "extras", []) if run else []
-    sig = json.dumps(extras, sort_keys=True)
+    if run:
+        reserved = sorted((r["key"], r["pieces"]) for r in dispatch.open_reservations(run))
+        plans = {t: (p["version"], p["status"]) for t, p in dispatch.all_current_plans(run).items()}
+        marks = store.rows("select key, value from kv where run=? and (key like 'truck_status:%' or key='merges')", (run,))
+        sig = json.dumps([store.get_kv(run, "extras", []), reserved, plans, marks], sort_keys=True, default=str)
+    else:
+        sig = "none"
     key = run or "_"
     if key not in _night_cache or _night_cache[key][0] != sig:
-        _night_cache[key] = (sig, Night(DEMO["plan_evening"], DEMO["plan_date"], DEMO["distributor"], extras))
+        _night_cache[key] = (sig, dispatch.night_for(run, DEMO["plan_evening"], DEMO["plan_date"], DEMO["distributor"]))
     return _night_cache[key][1]
 
 
@@ -67,6 +73,14 @@ def _cost(run: str) -> dict:
     uncached = max(0, total["input"] - total["cache_read"])
     usd = (uncached * PRICE_PER_MTOK["input"] + total["cache_read"] * PRICE_PER_MTOK["cache_read"] + total["output"] * PRICE_PER_MTOK["output"]) / 1_000_000
     return {**total, "usd": round(usd, 3), "estimated": True}
+
+
+def _plan_view(run: str, truck: str) -> dict | None:
+    plan = dispatch.current_plan(run, truck)
+    if not plan:
+        return None
+    versions = store.rows("select version, status from plans where run=? and truck=? order by version", (run, truck))
+    return {"truck": truck, "version": plan["version"], "status": plan["status"], "hash": plan["hash"], "option": plan["option"], "fill": plan["fill"], "kg": plan["kg"], "unplaced": plan["unplaced"], "versions": versions, "revisions": store.get_kv(run, f"revisions:{truck}", [])}
 
 
 def butter_chart() -> dict:
@@ -142,7 +156,9 @@ def snapshot(run: str | None) -> dict:
             "start_fill": store.get_kv(run, f"start_fill:{focus}"),
             "messages": messages[-80:],
             "decisions": decisions,
-            "sheet": night.load_sheet(focus) if store.get_kv(run, f"sheet:{focus}") else None,
+            "sheet": store.get_kv(run, f"sheet:{focus}"),
+            "plan": _plan_view(run, focus),
+            "safeguards": _events(run, ("plan_rejected", "promise_blocked", "revision_proposed", "stock_reserved", "stock_released", "reservation_expired", "truck_held", "truck_merged"), 2000)[-30:],
             "drops": store.get_kv(run, "drops", {}),
             "misses": store.get_kv(run, "misses", []),
             "reports": _events(run, ("report",)),

@@ -30,7 +30,7 @@ def _lines_from_orders(orders: pd.DataFrame) -> list[Line]:
 class Night:
     """One evening's decision: every truck, line and stock position as of that evening."""
 
-    def __init__(self, evening: str, plan_date: str, distributor: str = "A", extras: list[dict] | None = None):
+    def __init__(self, evening: str, plan_date: str, distributor: str = "A", extras: list[dict] | None = None, merges: dict | None = None, held: set | None = None, locked: dict | None = None, locked_batches: dict | None = None, reserved: dict | None = None):
         self.ledger = Ledger(evening, distributor)
         self.plan_date = plan_date
         self.orders = self.ledger.orders_for(plan_date)
@@ -38,8 +38,15 @@ class Night:
         self.stock = stock_by_product(self.stock_table)
         self.capacity = standin("vehicle_capacity_kg")
         self.lines = _lines_from_orders(self.orders)
+        self.held = held or set()
+        self.locked = locked or {}
+        self.locked_batches = locked_batches or {}
+        self.reserved = reserved or {}
         for e in extras or []:
             self.add_extra(e)
+        for ln in self.lines:
+            if merges and ln.truck in merges:
+                ln.truck = merges[ln.truck]
 
     def _product(self, product_id: str) -> dict:
         p = self.ledger.products()
@@ -51,7 +58,22 @@ class Night:
         self.lines.append(Line(f"{e['truck']}|{e['retailer']}|{e['product']}|{e['source']}", e["truck"], e["route"], e["retailer"], e["retailer_type"], e["product"], p["product_name"], int(e["pieces"]), float(p["pack_kg"] or 0), value, e["source"], e.get("evidence", "")))
 
     def solved(self) -> dict:
-        return solve(self.lines, self.stock, self.capacity)
+        """Allocate only what is still open. Frozen plans keep their exact quantities, and held trucks get none."""
+        allocated: dict[str, int] = {}
+        left = dict(self.stock)
+        open_lines = []
+        for ln in self.lines:
+            if ln.truck in self.held:
+                allocated[ln.key] = 0
+            elif ln.truck in self.locked:
+                pieces = self.locked[ln.truck].get(ln.key, 0)
+                allocated[ln.key] = pieces
+                left[ln.product] = left.get(ln.product, 0) - pieces
+            else:
+                open_lines.append(ln)
+        result = solve(open_lines, left, self.capacity)
+        allocated.update(result["allocated"])
+        return {"allocated": allocated, "method": result["method"]}
 
     def truck_summary(self, result: dict | None = None) -> list[dict]:
         result = result or self.solved()
@@ -78,11 +100,16 @@ class Night:
     def load_sheet(self, truck: str, result: dict | None = None) -> list[dict]:
         result = result or self.solved()
         rows = [
-            {"retailer": ln.retailer, "retailer_type": ln.retailer_type, "product": ln.product, "product_name": ln.product_name, "ordered": ln.pieces, "pieces": result["allocated"][ln.key], "source": ln.source, "evidence": ln.evidence}
+            {"key": ln.key, "retailer": ln.retailer, "retailer_type": ln.retailer_type, "route": ln.route, "product": ln.product, "product_name": ln.product_name, "ordered": ln.pieces, "pieces": result["allocated"][ln.key], "kg_each": ln.kg_per_piece, "source": ln.source, "evidence": ln.evidence}
             for ln in self.lines
             if ln.truck == truck and result["allocated"][ln.key] > 0
         ]
-        return assign_batches(rows, self.stock_table.to_dict("records"))
+        batches = []
+        for b in self.stock_table.to_dict("records"):
+            b = dict(b)
+            b["pieces"] = b["pieces"] - self.locked_batches.get(b["batch_id"], 0)
+            batches.append(b)
+        return assign_batches(rows, batches)
 
     def expiry_risk(self, truck: str) -> dict:
         """Stock on this truck's products that cannot sell in time at the rate seen so far."""
@@ -112,8 +139,9 @@ class Night:
         """Stock not yet promised to anyone tonight. An offer must never sell what is already promised."""
         promised: dict[str, int] = {}
         for ln in self.lines:
-            promised[ln.product] = promised.get(ln.product, 0) + ln.pieces
-        return {p: q - promised.get(p, 0) for p, q in self.stock.items()}
+            if ln.truck not in self.held:
+                promised[ln.product] = promised.get(ln.product, 0) + ln.pieces
+        return {p: q - promised.get(p, 0) - self.reserved.get(p, 0) for p, q in self.stock.items()}
 
     def offers(self, truck: str, limit: int = 12, already_asked: set[str] | None = None) -> list[dict]:
         """Who on this truck's routes could take more. Ageing stock first, then the biggest regular buyers.
@@ -196,9 +224,10 @@ class Night:
                 break
             chosen.append(o)
             added += o["kg"]
-        sell_fill = min(1.0, (me["kg"] + added) / me["capacity_kg"])
-        extra_value = sum(o["value_inr"] for o in chosen)
-        discounts = round(sum(o["pieces"] * o["discount_inr_per_piece"] for o in chosen))
+        accept = standin("offer_acceptance_rate")
+        sell_fill = min(1.0, (me["kg"] + added * accept) / me["capacity_kg"])
+        extra_value = sum(o["value_inr"] for o in chosen) * accept
+        discounts = round(sum(o["pieces"] * o["discount_inr_per_piece"] for o in chosen) * accept)
         # Expiry cost here is only what this decision changes: ageing stock these offers would have moved.
         moved_ageing = sum(o["value_inr"] for o in chosen if o["ageing_stock"])
         one_day_ageing = sum(b["value_inr"] for b in self.expiry_risk(truck)["batches"]) / 30
@@ -211,12 +240,12 @@ class Night:
             host = max(others, key=lambda t: t["fill"])
             merged_fill = (host["kg"] + me["kg"]) / host["capacity_kg"]
             late_margin = round(hold_margin * 0.25)
-            merge = {"name": "merge", "label": f"Merge into {host['truck']}", "with_truck": host["truck"], "load": round(merged_fill, 3), "truck_cost_inr": merge_extra, "margin_lost_inr": late_margin + short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "A quarter of stops arrive after noon"}
+            merge = {"name": "merge", "label": f"Merge into {host['truck']}", "with_truck": host["truck"], "load": round(merged_fill, 3), "truck_cost_inr": merge_extra, "margin_lost_inr": late_margin + short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "A quarter of stops arrive late. Needs a person's approval"}
 
         options = [
-            {"name": "go", "label": "Go now", "load": me["fill"], "truck_cost_inr": waste(me["fill"]), "margin_lost_inr": short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "Sends a light truck" if me["fill"] < target else "Truck is full enough"},
-            {"name": "sell_to_fill", "label": "Sell to fill", "load": round(sell_fill, 3), "truck_cost_inr": waste(sell_fill), "margin_lost_inr": short_margin, "expiry_risk_inr": 0, "discounts_inr": discounts, "extra_margin_inr": round(extra_value * margin * 0.6), "note": f"{len(chosen)} retailers could add {round(added)} kg", "offers": chosen},
-            {"name": "hold", "label": "Hold one day", "load": me["fill"], "truck_cost_inr": 0, "margin_lost_inr": hold_margin, "expiry_risk_inr": expiry_hold, "discounts_inr": 0, "extra_margin_inr": 0, "note": "All of tomorrow's sales wait"},
+            {"name": "go", "label": "Go now", "load": me["fill"], "truck_cost_inr": waste(me["fill"]), "margin_lost_inr": short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "Needs a person's approval, as it is under target" if me["fill"] < target else "Truck is full enough"},
+            {"name": "sell_to_fill", "label": "Sell to fill", "load": round(sell_fill, 3), "truck_cost_inr": waste(sell_fill), "margin_lost_inr": short_margin, "expiry_risk_inr": 0, "discounts_inr": discounts, "extra_margin_inr": round(extra_value * margin), "note": f"Ask {len(chosen)} retailers, expect about {round(added * accept)} of {round(added)} kg", "offers": chosen},
+            {"name": "hold", "label": "Hold one day", "load": me["fill"], "truck_cost_inr": 0, "margin_lost_inr": hold_margin, "expiry_risk_inr": expiry_hold, "discounts_inr": 0, "extra_margin_inr": 0, "note": "All of tomorrow's sales wait. Needs a person's approval"},
         ]
         if merge:
             options.insert(2, merge)
