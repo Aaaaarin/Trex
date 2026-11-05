@@ -3,7 +3,7 @@
     "distributor": "A",
     "plan_evening": "2026-10-15",
     "plan_date": "2026-10-16",
-    "hero_truck": "T3",
+    "hero_truck": "V2",
     "lock_time": "21:00"
   },
   "standins": {
@@ -35,11 +35,11 @@
     },
     "shelf_life_days": {
       "value": {
-        "milk": 120,
+        "milk": 60,
         "paneer": 45,
         "butter": 120,
         "cheese": 180,
-        "cream": 60,
+        "cream": 30,
         "frozen": 180,
         "ghee": 270,
         "chocolate": 240,

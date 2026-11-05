@@ -1,0 +1,13 @@
+{
+  "_note": "Invented stand-in data shaped like the operator's description. Not real figures.",
+  "po_expiry_days": 3,
+  "branch_position": {
+    "P006": {"branch": "BR-1", "monthly_plan_mt": 62.0, "days_in_month": 31, "stock_mt": 0.2, "in_transit_mt": 4.0, "open_po_mt": 5.5, "po_id": "PO-1042", "po_age_days": 2, "transit_days": 5, "plant_stock_mt": 18.0, "allowed_vehicle_types": ["refrigerated"]},
+    "default": {"branch": "BR-1", "monthly_plan_mt": 310.0, "days_in_month": 31, "stock_mt": 42.0, "in_transit_mt": 30.0, "open_po_mt": 36.0, "po_id": "PO-1100", "po_age_days": 0, "transit_days": 5, "plant_stock_mt": 300.0, "allowed_vehicle_types": ["dry", "refrigerated"]}
+  },
+  "vehicles": [
+    {"id": "RV-11", "transporter": "Transporter C", "type": "refrigerated", "capacity_mt": 24, "plant": "PL-3", "destination": "BR-1", "reported_hours_ago": 6, "matched_po": null},
+    {"id": "RV-07", "transporter": "Transporter A", "type": "dry", "capacity_mt": 18, "plant": "PL-3", "destination": "BR-1", "reported_hours_ago": 20, "matched_po": null},
+    {"id": "RV-02", "transporter": "Transporter B", "type": "refrigerated", "capacity_mt": 18, "plant": "PL-1", "destination": "BR-2", "reported_hours_ago": 3, "matched_po": null}
+  ]
+}
