@@ -1157,7 +1157,7 @@ function upstreamPanel() {
   </div>`;
 }
 function transportersBlock() {
-  const found = (S.transporters || {})[BUTTER_ID] || Object.values(S.transporters || {})[0];
+  const found = Object.values(S.transporters || {})[0];
   if (!found) return "";
   const site = (w) => (/^https?:\/\//i.test(w || "") ? `<a href="${esc(w)}" target="_blank" rel="noopener noreferrer">Website</a>` : "");
   const rows = (found.transporters || []).map((c) => `<div class="kv"><span>${esc(c.name || "Name not returned")}<span class="muted small"> ${esc(c.location || "")}</span></span><span class="small">${site(c.website)}</span></div>`).join("");
