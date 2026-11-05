@@ -429,10 +429,19 @@ button.evitem:hover .evsum { text-decoration: underline; text-underline-offset: 
   .chart-top { flex-wrap: wrap; gap: 6px; }
   .chart-top .chip { white-space: normal; }
 }
+html.topnav body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+html.topnav .side { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 8px 14px; border-right: 0; border-bottom: 1px solid var(--rule); }
+html.topnav .brand { padding: 0; }
+html.topnav .nav { flex-direction: row; margin-top: 0; gap: 2px; }
+html.topnav .nav a { width: auto; gap: 6px; }
+html.topnav .side-low { flex-direction: row; align-items: center; margin: 0 0 0 auto; gap: 8px; }
+html.topnav .side-low .sidebtn { width: auto; }
+html.topnav main { padding: 18px 20px; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
 </style>
+<script>if (new URLSearchParams(location.search).has("top")) document.documentElement.classList.add("topnav");</script>
 </head>
 <body>
 <aside class="side">
