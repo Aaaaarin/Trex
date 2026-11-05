@@ -394,6 +394,7 @@ button.evitem:hover .evsum { text-decoration: underline; text-underline-offset: 
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
+<script src="/static/fleet.js"></script>
 <script>
 "use strict";
 
@@ -1280,11 +1281,11 @@ function closeEvidence() {
 }
 
 /* ---------- Rendering ---------- */
-const VIEWS = { trucks: viewTrucks, truck: viewTruck, sell: viewSell, offers: viewSell, retailers: viewRetailers, batches: viewBatches, misses: viewMisses };
+const VIEWS = { fleet: () => TrexFleet.view(), trucks: viewTrucks, truck: viewTruck, sell: viewSell, offers: viewSell, retailers: viewRetailers, batches: viewBatches, misses: viewMisses };
 function renderChrome() {
   const family = { truck: "trucks", sell: "trucks", offers: "trucks" }[view.name] || view.name;
   const pending = pendingDecisions().length;
-  const items = [["trucks", "Trucks", pending], ["retailers", "Retailers"], ["batches", "Batches"], ["misses", "Misses"]];
+  const items = [["trucks", "Trucks", pending], ["fleet", "Drivers"], ["retailers", "Retailers"], ["batches", "Batches"], ["misses", "Misses"]];
   patch($("#nav"), items.map(([id, label, n]) => `<a href="#/${id}" class="${family === id ? "on" : ""}" ${family === id ? 'aria-current="page"' : ""}><span>${label}</span>${n ? `<span class="count">${n}</span>` : ""}</a>`).join(""));
   const labels = { working: "Working", waiting: "Waiting", needs_person: "Needs a person", error: "Error", closed: "Closed" };
   let line;
@@ -1364,6 +1365,7 @@ function parseHash() {
     case "retailers": return { name: "retailers", id: parts[1] ? normalizeRetailer(parts[1]) : "" };
     case "batches": return { name: "batches" };
     case "misses": return { name: "misses" };
+    case "fleet": return { name: "fleet" };
     default: return { name: "trucks" };
   }
 }
