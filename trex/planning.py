@@ -108,8 +108,20 @@ class Night:
             risk.setdefault(b["product"], b)
         return risk
 
-    def offers(self, truck: str, limit: int = 12) -> list[dict]:
-        """Who on this truck's routes could take more. Ageing stock first, then the biggest regular buyers."""
+    def free_stock(self) -> dict[str, int]:
+        """Stock not yet promised to anyone tonight. An offer must never sell what is already promised."""
+        promised: dict[str, int] = {}
+        for ln in self.lines:
+            promised[ln.product] = promised.get(ln.product, 0) + ln.pieces
+        return {p: q - promised.get(p, 0) for p, q in self.stock.items()}
+
+    def offers(self, truck: str, limit: int = 12, already_asked: set[str] | None = None) -> list[dict]:
+        """Who on this truck's routes could take more. Ageing stock first, then the biggest regular buyers.
+
+        Each shop is asked once, and offers never exceed unpromised stock.
+        """
+        already_asked = already_asked or set()
+        free = self.free_stock()
         routes = {ln.route for ln in self.lines if ln.truck == truck}
         ordering = {(ln.retailer, ln.product) for ln in self.lines}
         risk = self._at_risk_products(truck)
@@ -123,7 +135,9 @@ class Night:
         pair = pair.loc[pd.Series([(r, p) not in ordering for r, p in zip(pair["retailer_id"], pair["product_id"])], index=pair.index)]
         if pair.empty:
             return []
-        pair = pair[pair["product_id"].map(lambda p: self.stock.get(p, 0) > 0)]
+        pair = pair[pair["product_id"].map(lambda p: free.get(p, 0) > 0) & ~pair["retailer_id"].isin(already_asked)]
+        if pair.empty:
+            return []
         pair["ageing"] = pair["product_id"].isin(risk)
         pair["score"] = pair["kg_per_bill"].clip(upper=MAX_OFFER_KG) * (pair["bills"] >= 2).map({True: 1.0, False: 0.4}) * pair["ageing"].map({True: 1.5, False: 1.0})
         # Up to two ageing offers go first, if the stock still has days left to sell.
@@ -141,12 +155,18 @@ class Night:
             belief = estimate(self.ledger, r.retailer_id, r.product_id)
             if belief.low_days > 3:
                 continue
-            seen.add(r.retailer_id)
             scale = min(1.0, MAX_OFFER_KG / max(r.kg_per_bill, 0.1))  # never ask one shop to fill a truck
             pack = max(int(r.case_pack), 1)
             pieces = max(1, math.ceil(r.pieces / r.bills * scale))
             cases = max(1, round(pieces / pack))
             pieces = cases * pack if pack > 1 else pieces
+            if pieces > free.get(r.product_id, 0):
+                cases = free.get(r.product_id, 0) // pack
+                pieces = cases * pack
+                if pieces <= 0:
+                    continue
+            free[r.product_id] -= pieces
+            seen.add(r.retailer_id)
             kg_each = r.kg / max(r.pieces, 0.1)
             offers.append({"retailer": r.retailer_id, "retailer_type": r.retailer_type_hint, "route": r.route_id, "product": r.product_id, "product_name": r.product_name, "pieces": pieces, "cases": cases if pack > 1 else None, "pieces_per_case": pack, "kg": round(pieces * kg_each, 1), "value_inr": round(pieces * r.net / max(r.pieces, 0.1)), "ageing_stock": bool(r.ageing), "discount_inr_per_piece": max_off if r.ageing else 0, "days_left": risk[r.product_id]["days_left"] if r.ageing else None, "cover_low_days": belief.low_days, "cover_high_days": belief.high_days, "confidence": belief.confidence, "bills": int(r.bills), "why": ("Ageing batch. " if r.ageing else "") + belief.note, "evidence": r.ref})
             if len(offers) >= limit:

@@ -147,7 +147,8 @@ class Tools:
         night = self.night()
         me = next(t for t in night.truck_summary() if t["truck"] == truck)
         gap = max(0.0, standin("fill_target") * me["capacity_kg"] - me["kg"])
-        candidates = night.offers(truck, limit=20)
+        asked = set(store.get_kv(self.run, f"offers:{truck}", {}))
+        candidates = night.offers(truck, limit=20, already_asked=asked)
         chosen, kg = [], 0.0
         for o in candidates:
             if kg >= gap * 1.1:

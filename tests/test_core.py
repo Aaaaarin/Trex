@@ -80,3 +80,19 @@ def test_belief_is_wide_with_little_history():
     ledger = Ledger(EVENING)
     none = estimate(ledger, "R-999", "P999")
     assert none.bills == 0 and none.high_days - none.low_days >= 14
+
+
+def test_offers_never_exceed_unpromised_stock():
+    night = Night(EVENING, DAY)
+    free = night.free_stock()
+    used: dict[str, int] = {}
+    for o in night.offers("V2", limit=20):
+        used[o["product"]] = used.get(o["product"], 0) + o["pieces"]
+    assert all(q <= free[p] for p, q in used.items())
+
+
+def test_a_shop_is_not_asked_twice():
+    night = Night(EVENING, DAY)
+    first = {o["retailer"] for o in night.offers("V2", limit=5)}
+    again = {o["retailer"] for o in night.offers("V2", limit=20, already_asked=first)}
+    assert first and not (first & again)
