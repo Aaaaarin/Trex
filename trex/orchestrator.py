@@ -17,12 +17,11 @@ class Runner:
         self.stopped = threading.Event()
         self.thread = threading.Thread(target=self._loop, daemon=True, name=f"agent-{run}")
         self.simulator = channels.Simulator(run, DEMO["plan_evening"], DEMO["plan_date"], on_reply=self.wake.set)
-        self.poller = channels.TelegramPoller(run, on_reply=self.wake.set)
 
     def start(self) -> None:
         self.thread.start()
         self.simulator.start()
-        self.poller.start()
+        _ensure_poller()
 
     def stop(self) -> None:
         self.stopped.set()
@@ -58,6 +57,24 @@ class Runner:
 
 
 RUNNERS: dict[str, Runner] = {}
+_poller: channels.TelegramPoller | None = None
+
+
+def _latest_run() -> str | None:
+    found = store.rows("select id from runs order by created desc limit 1")
+    return found[0]["id"] if found else None
+
+
+def _wake(run: str) -> None:
+    if run in RUNNERS:
+        RUNNERS[run].wake.set()
+
+
+def _ensure_poller() -> None:
+    global _poller
+    if _poller is None:
+        _poller = channels.TelegramPoller(_latest_run, on_reply=_wake)
+        _poller.start()
 
 
 def start_run(run: str, request: str, client=None) -> Runner:

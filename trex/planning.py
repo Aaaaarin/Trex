@@ -102,14 +102,21 @@ class Night:
                 at_risk.append({"product": b.product_id, "product_name": b.product_name, "batch": b.batch_id, "pieces": int(b.pieces), "days_left": int(b.days_left), "days_needed": round(needed, 1), "value_inr": round(unsold * float(price.get(b.product_id, 0)))})
         return {"total_inr": sum(a["value_inr"] for a in at_risk), "batches": sorted(at_risk, key=lambda a: -a["value_inr"])}
 
+    def _at_risk_products(self, truck: str) -> dict[str, dict]:
+        risk: dict[str, dict] = {}
+        for b in self.expiry_risk(truck)["batches"]:
+            risk.setdefault(b["product"], b)
+        return risk
+
     def offers(self, truck: str, limit: int = 12) -> list[dict]:
-        """Who on this truck's routes could take more: usual products they have not ordered tonight."""
+        """Who on this truck's routes could take more. Ageing stock first, then the biggest regular buyers."""
         routes = {ln.route for ln in self.lines if ln.truck == truck}
         ordering = {(ln.retailer, ln.product) for ln in self.lines}
+        risk = self._at_risk_products(truck)
         d = self.ledger.lines()
         d = d[d["route_id"].isin(routes) & (~d["is_counter"])]
-        pair = d.groupby(["retailer_id", "retailer_type_hint", "route_id", "product_id", "product_name"], as_index=False).agg(bills=("invoice_id", "nunique"), kg=("kg", "sum"), pieces=("pieces", "sum"), net=("net_amount", "sum"), ref=("evidence_ref", "last"))
-        pair = pair[(pair["kg"] > 0)]
+        pair = d.groupby(["retailer_id", "retailer_type_hint", "route_id", "product_id", "product_name", "case_pack"], as_index=False, dropna=False).agg(bills=("invoice_id", "nunique"), kg=("kg", "sum"), pieces=("pieces", "sum"), net=("net_amount", "sum"), ref=("evidence_ref", "last"))
+        pair = pair[pair["kg"] > 0]
         pair["kg_per_bill"] = pair["kg"] / pair["bills"]
         if pair.empty:
             return []
@@ -117,9 +124,11 @@ class Night:
         if pair.empty:
             return []
         pair = pair[pair["product_id"].map(lambda p: self.stock.get(p, 0) > 0)]
-        pair["repeat"] = pair["bills"] >= 2
-        pair = pair.sort_values(["repeat", "kg_per_bill"], ascending=False)
+        pair["ageing"] = pair["product_id"].isin(risk)
+        pair["score"] = pair["kg_per_bill"].clip(upper=MAX_OFFER_KG) * (pair["bills"] >= 2).map({True: 1.0, False: 0.4}) * pair["ageing"].map({True: 1.5, False: 1.0})
+        pair = pair.sort_values(["score"], ascending=False)
         offers, seen = [], set()
+        max_off = standin("max_discount_inr_per_pack")
         for r in pair.itertuples():
             if r.retailer_id in seen:
                 continue
@@ -128,7 +137,12 @@ class Night:
                 continue
             seen.add(r.retailer_id)
             scale = min(1.0, MAX_OFFER_KG / max(r.kg_per_bill, 0.1))  # never ask one shop to fill a truck
-            offers.append({"retailer": r.retailer_id, "retailer_type": r.retailer_type_hint, "route": r.route_id, "product": r.product_id, "product_name": r.product_name, "pieces": max(1, math.ceil(r.pieces / r.bills * scale)), "kg": round(r.kg_per_bill * scale, 1), "value_inr": round(r.net / r.bills * scale), "cover_low_days": belief.low_days, "cover_high_days": belief.high_days, "confidence": belief.confidence, "why": belief.note, "evidence": r.ref})
+            pack = max(int(r.case_pack), 1)
+            pieces = max(1, math.ceil(r.pieces / r.bills * scale))
+            cases = max(1, round(pieces / pack))
+            pieces = cases * pack if pack > 1 else pieces
+            kg_each = r.kg / max(r.pieces, 0.1)
+            offers.append({"retailer": r.retailer_id, "retailer_type": r.retailer_type_hint, "route": r.route_id, "product": r.product_id, "product_name": r.product_name, "pieces": pieces, "cases": cases if pack > 1 else None, "pieces_per_case": pack, "kg": round(pieces * kg_each, 1), "value_inr": round(pieces * r.net / max(r.pieces, 0.1)), "ageing_stock": bool(r.ageing), "discount_inr_per_piece": max_off if r.ageing else 0, "days_left": risk[r.product_id]["days_left"] if r.ageing else None, "cover_low_days": belief.low_days, "cover_high_days": belief.high_days, "confidence": belief.confidence, "bills": int(r.bills), "why": ("Ageing batch. " if r.ageing else "") + belief.note, "evidence": r.ref})
             if len(offers) >= limit:
                 break
         return offers
@@ -148,20 +162,22 @@ class Night:
         value = sum(result["allocated"][ln.key] * ln.value_per_piece for ln in lines)
         short_margin = round(sum((ln.pieces - result["allocated"][ln.key]) * ln.value_per_piece * margin * loss.get(ln.retailer_type, 0.6) for ln in lines))
         hold_margin = round(sum(result["allocated"][ln.key] * ln.value_per_piece * margin * loss.get(ln.retailer_type, 0.6) for ln in lines))
-        expiry = self.expiry_risk(truck)["total_inr"]
-
         offers = self.offers(truck)
         gap_kg = max(0.0, target * me["capacity_kg"] - me["kg"])
         chosen, added = [], 0.0
         for o in offers:
-            if added >= gap_kg + target * 0.0:
+            if added >= gap_kg:
                 break
             chosen.append(o)
             added += o["kg"]
         sell_fill = min(1.0, (me["kg"] + added) / me["capacity_kg"])
         extra_value = sum(o["value_inr"] for o in chosen)
-        max_off = standin("max_discount_inr_per_pack")
-        discounts = round(sum(o["pieces"] * max_off * 0.25 for o in chosen))
+        discounts = round(sum(o["pieces"] * o["discount_inr_per_piece"] for o in chosen))
+        # Expiry cost here is only what this decision changes: ageing stock these offers would have moved.
+        moved_ageing = sum(o["value_inr"] for o in chosen if o["ageing_stock"])
+        one_day_ageing = sum(b["value_inr"] for b in self.expiry_risk(truck)["batches"]) / 30
+        expiry = round(moved_ageing)
+        expiry_hold = round(moved_ageing + one_day_ageing)
 
         others = [t for t in summary.values() if t["truck"] != truck and (t["kg"] + me["kg"]) <= t["capacity_kg"]]
         merge = None
@@ -169,12 +185,12 @@ class Night:
             host = max(others, key=lambda t: t["fill"])
             merged_fill = (host["kg"] + me["kg"]) / host["capacity_kg"]
             late_margin = round(hold_margin * 0.25)
-            merge = {"name": "merge", "label": f"Merge into {host['truck']}", "with_truck": host["truck"], "load": round(merged_fill, 3), "truck_cost_inr": merge_extra, "margin_lost_inr": late_margin + short_margin, "expiry_risk_inr": round(expiry * 0.5), "discounts_inr": 0, "extra_margin_inr": 0, "note": "A quarter of stops arrive after noon"}
+            merge = {"name": "merge", "label": f"Merge into {host['truck']}", "with_truck": host["truck"], "load": round(merged_fill, 3), "truck_cost_inr": merge_extra, "margin_lost_inr": late_margin + short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "A quarter of stops arrive after noon"}
 
         options = [
             {"name": "go", "label": "Go now", "load": me["fill"], "truck_cost_inr": waste(me["fill"]), "margin_lost_inr": short_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "Sends a light truck" if me["fill"] < target else "Truck is full enough"},
-            {"name": "sell_to_fill", "label": "Sell to fill", "load": round(sell_fill, 3), "truck_cost_inr": waste(sell_fill), "margin_lost_inr": short_margin, "expiry_risk_inr": round(expiry * 0.5), "discounts_inr": discounts, "extra_margin_inr": round(extra_value * margin * 0.6), "note": f"{len(chosen)} retailers could add {round(added)} kg", "offers": chosen},
-            {"name": "hold", "label": "Hold one day", "load": me["fill"], "truck_cost_inr": 0, "margin_lost_inr": hold_margin, "expiry_risk_inr": expiry, "discounts_inr": 0, "extra_margin_inr": 0, "note": "All of tomorrow's sales wait"},
+            {"name": "sell_to_fill", "label": "Sell to fill", "load": round(sell_fill, 3), "truck_cost_inr": waste(sell_fill), "margin_lost_inr": short_margin, "expiry_risk_inr": 0, "discounts_inr": discounts, "extra_margin_inr": round(extra_value * margin * 0.6), "note": f"{len(chosen)} retailers could add {round(added)} kg", "offers": chosen},
+            {"name": "hold", "label": "Hold one day", "load": me["fill"], "truck_cost_inr": 0, "margin_lost_inr": hold_margin, "expiry_risk_inr": expiry_hold, "discounts_inr": 0, "extra_margin_inr": 0, "note": "All of tomorrow's sales wait"},
         ]
         if merge:
             options.insert(2, merge)

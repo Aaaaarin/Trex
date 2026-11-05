@@ -24,8 +24,15 @@ def _h(*parts) -> int:
     return int(hashlib.sha256("|".join(map(str, parts)).encode()).hexdigest()[:8], 16)
 
 
+GLOBAL = "_global"
+
+
+def live_chat() -> int | None:
+    return store.get_kv(GLOBAL, "telegram_chat") or (int(os.environ["TELEGRAM_CHAT_ID"]) if os.environ.get("TELEGRAM_CHAT_ID") else None)
+
+
 def live_roles(run: str) -> dict:
-    return store.get_kv(run, "live", {})
+    return {"chat_id": live_chat(), **store.get_kv(run, "live", {})}
 
 
 def is_live(run: str, role: str, recipient: str) -> bool:
@@ -92,11 +99,11 @@ class Simulator(threading.Thread):
 
 
 class TelegramPoller(threading.Thread):
-    """Reads the builder's own chat. The first message registers the chat for live roles."""
+    """Reads the builder's own chat for the most recent run. The first message registers the chat."""
 
-    def __init__(self, run: str, on_reply=None):
+    def __init__(self, latest_run, on_reply=None):
         super().__init__(daemon=True)
-        self.run_id, self.on_reply = run, on_reply
+        self.latest_run, self.on_reply = latest_run, on_reply
         self.offset = 0
 
     def run(self) -> None:
@@ -115,15 +122,12 @@ class TelegramPoller(threading.Thread):
                 chat = msg.get("chat", {}).get("id")
                 if not chat:
                     continue
-                live = store.get_kv(self.run_id, "live", {})
-                if not live.get("chat_id"):
-                    live["chat_id"] = chat
-                    store.set_kv(self.run_id, "live", live)
-                last = store.get_kv(self.run_id, "last_live", {})
-                text = msg.get("text") or msg.get("caption") or ("[photo]" if msg.get("photo") else "[voice note: transcription is not supported]" if msg.get("voice") else "")
-                if text.startswith("/start"):
+                store.set_kv(GLOBAL, "telegram_chat", chat)
+                run = self.latest_run()
+                text = msg.get("text") or msg.get("caption") or ("[photo]" if msg.get("photo") else "[voice note, not transcribed]" if msg.get("voice") else "")
+                if not run or text.startswith("/start"):
                     continue
-                proof = {"photo": bool(msg.get("photo"))}
-                store.add_inbox(self.run_id, last.get("recipient", "unknown"), last.get("role", "unknown"), text, False, f"tg:{update['update_id']}", {"offer": last.get("offer"), **proof})
+                last = store.get_kv(run, "last_live", {})
+                store.add_inbox(run, last.get("recipient", "unknown"), last.get("role", "unknown"), text, False, f"tg:{update['update_id']}", {"offer": last.get("offer"), "photo": bool(msg.get("photo")), "retailer": last.get("recipient")})
                 if self.on_reply:
-                    self.on_reply()
+                    self.on_reply(run)

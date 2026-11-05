@@ -145,22 +145,23 @@ class Tools:
         candidates = night.offers(truck, limit=20)
         chosen, kg = [], 0.0
         for o in candidates:
-            if kg >= gap * 1.25:
+            if kg >= gap * 1.1:
                 break
             chosen.append(o)
             kg += o["kg"]
         for o in chosen:
             o["evidence_id"] = store.add_evidence(self.run, "estimate", f"offer:{o['retailer']}:{o['product']}", f"Why offer {o['product']} to {o['retailer']}", o)
-        data = {"truck": truck, "needs_kg": round(gap), "asking": len(chosen), "not_asking": len(candidates) - len(chosen), "offers": chosen, "max_discount_inr_per_pack": standin("max_discount_inr_per_pack")}
+        data = {"truck": truck, "needs_kg": round(gap), "asking": len(chosen), "not_asking": len(candidates) - len(chosen), "offers": chosen, "max_discount_inr_per_pack": standin("max_discount_inr_per_pack"), "note": "Offer whole cases. Offer a discount only where discount_inr_per_piece is above zero"}
         data["discount_evidence_id"] = self._standin_evidence("max_discount", "Allowed discount, stand-in", {"max_discount_inr_per_pack": standin("max_discount_inr_per_pack")})
         store.set_kv(self.run, f"offers:{truck}", {o["retailer"]: o for o in chosen})
         return data
 
-    def _add_extra(self, retailer: str, product: str, pieces: int, source: str, evidence_id: str) -> dict:
+    def _add_extra(self, retailer: str, product: str, pieces: int, source: str, evidence_id: str, route: str | None = None) -> dict:
         r = self._retailer(retailer)
-        truck = self._truck_for_route(r["route_id"])
+        route = route or r["route_id"]
+        truck = self._truck_for_route(route)
         extras = [e for e in self._extras() if not (e["retailer"] == retailer and e["product"] == product and e["source"] == source)]
-        extras.append({"truck": truck, "route": r["route_id"], "retailer": retailer, "retailer_type": r["retailer_type_hint"], "product": product, "pieces": int(pieces), "source": source, "evidence": evidence_id})
+        extras.append({"truck": truck, "route": route, "retailer": retailer, "retailer_type": r["retailer_type_hint"], "product": product, "pieces": int(pieces), "source": source, "evidence": evidence_id})
         store.set_kv(self.run, "extras", extras)
         me = next(t for t in self.night().truck_summary() if t["truck"] == truck)
         store.log(self.run, "load_changed", truck=truck, fill=me["fill"], kg=me["kg"], retailer=retailer, product=product, pieces=int(pieces), source=source)
@@ -169,13 +170,24 @@ class Tools:
     def add_request(self, retailer: str, product: str, pieces: int, evidence_id: str) -> dict:
         if store.get_evidence(evidence_id) is None:
             return {"error": "That evidence does not exist"}
+        night = self.night()
+        promised = sum(ln.pieces for ln in night.lines if ln.product == product)
+        stock = night.stock.get(product)
+        approved = store.rows("select id from decisions where run=? and answer is not null and lower(answer) like 'approve%'", (self.run,))
+        if stock is not None and promised + pieces > stock and not approved:
+            data = {"product": product, "stock_pieces": stock, "already_promised_pieces": promised, "requested_pieces": pieces, "standin": True}
+            eid = self._standin_evidence(f"scarcity:{product}", f"Stock against promises for {product}", data)
+            return {"needs_decision": True, "reason": "This takes stock already promised to other retailers. Use request_decision with these numbers, then end your turn. Call add_request again after approval.", "evidence_id": eid, **data}
         return self._add_extra(retailer, product, pieces, "request", evidence_id)
 
     def send_offer(self, retailer: str, product: str, pieces: int, text: str, claims: list[dict]) -> dict:
         gate.check(self.run, text, claims)
         group = self.ledger.products().set_index("product_id").loc[product, "group"]
         key = f"{self.run}:offer:{retailer}:{product}"
-        return channels.send(self.run, "retailer", retailer, text, key, {"retailer": retailer, "product": product, "pieces": int(pieces), "group": group})
+        route = None
+        for rows in store.rows("select value from kv where run=? and key like 'offers:%'", (self.run,)):
+            route = (json.loads(rows["value"]).get(retailer) or {}).get("route") or route
+        return channels.send(self.run, "retailer", retailer, text, key, {"retailer": retailer, "product": product, "pieces": int(pieces), "group": group, "route": route})
 
     def accept_offer(self, retailer: str, product: str, pieces: int, evidence_id: str) -> dict:
         e = store.get_evidence(evidence_id)
@@ -187,7 +199,8 @@ class Tools:
         offered = json.loads(sent[0]["data"])["pieces"]
         if pieces > offered:
             return {"error": f"Retailer accepted more than offered ({offered}). Ask a person"}
-        return self._add_extra(retailer, product, pieces, "offer", evidence_id)
+        sent_offer = json.loads(sent[0]["data"])
+        return self._add_extra(retailer, product, pieces, "offer", evidence_id, sent_offer.get("route"))
 
     def send_message(self, role: str, recipient: str, text: str, claims: list[dict]) -> dict:
         gate.check(self.run, text, claims)
