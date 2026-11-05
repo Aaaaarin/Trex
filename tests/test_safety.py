@@ -152,3 +152,10 @@ def test_history_is_append_only(run):
     store.add_inbox(run, "R-1", "retailer", "haan", True, "d9")
     agent.advance()
     assert json.dumps(store.get_turns(run)).startswith(before[:-1])
+
+
+def test_same_update_in_two_runs_counts_in_both(run):
+    other = run + "b"
+    store.create_run(other, "test")
+    assert store.add_inbox(run, "d", "driver", "R-1 delivered", True, "drop:V2:R-1")
+    assert store.add_inbox(other, "d", "driver", "R-1 delivered", True, "drop:V2:R-1")

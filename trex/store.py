@@ -108,7 +108,7 @@ def get_turns(run: str) -> list[dict]:
 
 def add_inbox(run: str, sender: str, role: str, text: str, simulated: bool, dedupe: str, data: Any = None) -> bool:
     """Late or repeated updates are safe: the same update twice counts once."""
-    cur = execute("insert or ignore into inbox(run, ts, sender, role, text, simulated, dedupe, data) values(?,?,?,?,?,?,?,?)", (run, time.time(), sender, role, text, int(simulated), dedupe, json.dumps(data or {}, default=str)))
+    cur = execute("insert or ignore into inbox(run, ts, sender, role, text, simulated, dedupe, data) values(?,?,?,?,?,?,?,?)", (run, time.time(), sender, role, text, int(simulated), f"{run}|{dedupe}", json.dumps(data or {}, default=str)))
     added = cur.rowcount > 0
     log(run, "reply" if added else "duplicate_reply_ignored", sender=sender, role=role, text=text, simulated=simulated)
     return added
