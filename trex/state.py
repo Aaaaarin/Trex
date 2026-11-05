@@ -152,6 +152,7 @@ def snapshot(run: str | None) -> dict:
             "safety": {"source_check_blocks": gate_blocks, "duplicate_replies_ignored": len(_events(run, ("duplicate_reply_ignored",), 2000)), "sends_skipped": len(_events(run, ("send_skipped_duplicate",), 2000)), "resumes": len(_events(run, ("resumed_after_restart",), 2000))},
             "cost": _cost(run),
             "live": store.get_kv(run, "live", {}),
+            "delivery_started": bool(store.get_kv(run, "delivery_started")),
         }
     )
     return out

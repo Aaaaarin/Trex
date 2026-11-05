@@ -112,6 +112,7 @@ def answer_decision(run: str, decision_id: str, answer: str, by: str) -> None:
 
 def run_tomorrow(run: str, failed_share: int = 11) -> dict:
     """Simulate the delivery day. Live stops wait for a real photo from the builder's phone."""
+    store.set_kv(run, "delivery_started", True)
     live = store.get_kv(run, "live", {})
     live_stops = set(live.get("recipients", []))
     decided = store.get_kv(run, "decided", {})

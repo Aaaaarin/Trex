@@ -726,6 +726,7 @@ function viewTruck() {
     ${options ? `<div class="opts">${(options.options || []).map((o) => optionCard(o, options.recommended, t.decision && t.decision.option)).join("")}</div>` : `<p class="quiet">Not priced yet</p>`}
     <div class="split" style="margin-top:6px">
       <section>
+        ${deliveryBar(sheet)}
         <h2 class="sec-title">Stops</h2>
         ${sheet && sheet.length ? stopsBlock(sheet) : `<p class="muted">Stops appear when the load sheet is issued</p>`}
       </section>
@@ -750,10 +751,25 @@ function gaugeStart(t) {
   gauge.start = gauge.start === null ? v : Math.min(gauge.start, v);
   return gauge.start;
 }
+function deliveryBar(sheet) {
+  if (!sheet || !sheet.length) return "";
+  const stops = new Set(sheet.map((r) => r.retailer));
+  const closed = Object.keys(S.drops || {}).filter((r) => stops.has(r));
+  const waiting = [...stops].filter((r) => !closed.includes(r));
+  const live = ((S.live && S.live.recipients) || []).filter((r) => waiting.includes(r));
+  if (!closed.length && !S.delivery_started) {
+    return `<div class="card" data-key="delivery-bar" style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 17px;margin-bottom:18px"><span>Load sheet issued. Nothing is delivered until each stop is proven.</span><button class="btn ink" data-act="tomorrow">Run delivery day</button></div>`;
+  }
+  const text = waiting.length
+    ? `${closed.length} of ${stops.size} stops proven.${live.length ? ` Waiting for a photo from your phone for ${live.join(", ")}.` : ""}`
+    : `All ${stops.size} stops closed.`;
+  return `<div class="card" data-key="delivery-bar" style="padding:14px 17px;margin-bottom:18px">${esc(text)}</div>`;
+}
 function chatPanel() {
   const msgs = (S.messages || []).filter((m) => m.role === "retailer");
   if (!msgs.length) return `<div class="card phone" data-key="phone-none"><p class="muted" style="padding:6px 5px">Offers go out next. Replies land here.</p></div>`;
-  const who = msgs[msgs.length - 1].who;
+  const liveShop = ((S.live && S.live.recipients) || []).find((r) => msgs.some((m) => m.who === r));
+  const who = liveShop || msgs[msgs.length - 1].who;
   const thread = msgs.filter((m) => m.who === who);
   const offer = (S.offers || []).find((o) => o.retailer === who);
   const items = thread.map((m) => ({ ts: num(m.ts), html: `<div class="bub ${m.direction === "out" ? "out" : "in"}">${linkEv(m.text)}<div class="bub-meta"><span>${esc(clock(m.ts))}</span>${m.channel === "simulated" ? `<span class="sim">Simulated</span>` : ""}</div></div>` }));

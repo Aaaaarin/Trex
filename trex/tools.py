@@ -266,7 +266,7 @@ class Tools:
             body = "; ".join(f"{i['product_name']}: {i['pieces']}" + (f" of {i['ordered']}" if i["pieces"] < i["ordered"] else "") for i in items[:6])
             text = f"Kal gaadi {truck} aa rahi hai. {body}." + (" Kuch maal kam hai, baaki agli gaadi se." if short else "")
             channels.send(self.run, "retailer", retailer, text, f"{self.run}:sheet:{truck}:{retailer}")
-        channels.send(self.run, "driver", f"driver-{truck}", f"Load sheet {truck}: {len(stops)} stops, {sum(i['pieces'] for i in sheet)} pieces. Send a photo at each drop.", f"{self.run}:driver:{truck}")
+        channels.send(self.run, "driver", f"driver-{truck}", f"Load sheet {truck}: {len(stops)} stops, {sum(i['pieces'] for i in sheet)} pieces. Trex will ask for a photo at each drop on the delivery day.", f"{self.run}:driver:{truck}")
         pending = sorted(stops)
         store.set_kv(self.run, f"pending_drops:{truck}", pending)
         store.log(self.run, "load_sheet_issued", truck=truck, stops=len(stops), lines=len(sheet), partial=sum(1 for i in sheet if i["pieces"] < i["ordered"]))
