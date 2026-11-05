@@ -8,58 +8,100 @@
 <link rel="stylesheet" href="/static/phone.css">
 </head>
 <body>
-<main>
-  <div class="top"><h1>Driver <span id="who"></span></h1><span class="chip mu">Stand-in pay</span></div>
-  <div id="view"></div>
-  <p class="err" id="err" role="status"></p>
-</main>
+<div class="app">
+  <header class="bar" id="bar"></header>
+  <main class="content">
+    <div class="sec" style="margin-top:0"><h2>Today</h2></div>
+    <div id="today"></div>
+    <p class="err" id="err" role="status"></p>
+    <div id="history" style="display:flex;flex-direction:column;gap:12px"></div>
+  </main>
+</div>
 <script src="/static/phone.js"></script>
 <script>
-const { esc, rupees, post, poll } = Trex;
+const { esc, rupees, day, stars, post, poll, getJson, STAND_IN, MARK } = Trex;
 const driver = (new URLSearchParams(location.search).get("id") || "D02").toUpperCase();
-document.getElementById("who").textContent = driver;
-const view = document.getElementById("view");
-const err = document.getElementById("err");
+const $ = (id) => document.getElementById(id);
 let poller;
 
-function draw(d) {
-  if (d.job) {
-    const j = d.job;
-    const stage = !j.gate_in ? `Report at depot by ${esc(j.report_time)}` : !j.gate_out ? "At depot, loading" : "On the road";
-    const stops = (j.my_stops || []).map((s) => `<div class="row between rule"><span>${esc(s.name)}</span>${
-      s.state === "open" ? (j.gate_out ? `<span class="row"><button class="btn tiny ink" data-drop="${esc(s.id)}" data-ok="1">Delivered</button><button class="btn tiny" data-drop="${esc(s.id)}" data-ok="0">Shop closed</button></span>` : `<span class="chip mu">Waiting</span>`)
-      : s.state === "sent" ? `<span class="chip am">Recording</span>`
-      : `<span class="chip ${s.state === "delivered" ? "gr" : "or"}">${s.state === "delivered" ? "Delivered" : "Failed"}</span>`}</div>`).join("");
-    view.innerHTML = `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)} is yours</h2><span class="chip gr">${j.how === "accepted" ? "Accepted" : j.how === "default" ? "Default" : "Assigned"}</span></div>
-      <div class="big">${esc(rupees(j.pay))}</div>
-      <div class="small muted num">${esc(j.stops)} stops · ${esc(j.kg)} kg · ${esc(j.closed)} of ${esc(j.stops)} closed</div>
-      <div>${stage}</div>${stops}</div>`;
-    return;
-  }
-  if (d.offer) {
-    const o = d.offer;
-    view.innerHTML = `<div class="card"><div class="row between"><h2>New job: truck ${esc(o.truck)}</h2>${o.round > 1 ? `<span class="chip or">Pay raised</span>` : ""}</div>
-      <div class="big">${esc(rupees(o.pay))}</div>
-      <div class="small muted num">${esc(o.stops)} stops · ${esc(o.kg)} kg · ${esc(o.km)} km to depot</div>
-      ${d.answered ? `<p class="muted">Answer sent</p>` : `<div class="two"><button class="btn go" data-answer="1" data-truck="${esc(o.truck)}">Accept</button><button class="btn" data-answer="0" data-truck="${esc(o.truck)}">Reject</button></div>`}</div>`;
-    return;
-  }
-  view.innerHTML = `<div class="card"><p class="muted">${d.gone ? "That job has gone to another driver" : "No job yet"}</p></div>`;
+$("bar").innerHTML = `${MARK}<div class="who"><h1>Driver ${esc(driver)}</h1><small>Trex driver app</small></div><span id="rate"></span>`;
+
+function facts(rows) {
+  return `<div class="facts">${rows.map(([v, k]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("")}</div>`;
+}
+
+function offerCard(d) {
+  const o = d.offer;
+  return `<div class="card">
+    <div class="row between"><span class="h">New job</span>${o.round > 1 ? `<span class="chip or">Pay raised</span>` : o.offered_first ? `<span class="chip gr">Offered first</span>` : `<span class="chip mu">Open</span>`}</div>
+    <div class="row between"><span class="big">${esc(rupees(o.pay))}</span>${STAND_IN}</div>
+    ${facts([[o.truck, "Truck"], [o.stops, "Stops"], [`${o.kg} kg`, "Load"], [`${o.km} km`, "To depot"]])}
+    <div class="row between small"><span class="muted">Your rating</span>${stars(o.rating)}</div>
+    ${d.answered ? `<p class="muted small">Answer sent. Waiting for the other drivers.</p>` : `<div class="two"><button class="btn" data-answer="0" data-truck="${esc(o.truck)}">Reject</button><button class="btn go" data-answer="1" data-truck="${esc(o.truck)}">Accept</button></div>`}
+  </div>`;
+}
+
+function jobCard(j) {
+  const steps = [["Assigned", true], ["At depot", j.gate_in], ["On road", j.gate_out], ["Done", j.stops > 0 && j.closed >= j.stops]];
+  const share = j.stops ? Math.round((j.closed / j.stops) * 100) : 0;
+  const stops = (j.my_stops || []).map((s) => `<div class="item"><span class="badge">${esc(s.name.slice(0, 1))}</span><div class="main"><b>${esc(s.name)}</b><span class="mono">${esc(s.id)}</span></div><div class="side">${
+    s.state === "open" ? (j.gate_out ? `<span class="row tight"><button class="btn mini" data-drop="${esc(s.id)}" data-ok="0">Closed</button><button class="btn mini ink" data-drop="${esc(s.id)}" data-ok="1">Delivered</button></span>` : `<span class="chip mu">Waiting</span>`)
+    : s.state === "sent" ? `<span class="chip am">Recording</span>`
+    : `<span class="chip ${s.state === "delivered" ? "gr" : "or"}">${s.state === "delivered" ? "Delivered" : "Failed"}</span>`}</div></div>`).join("");
+  return `<div class="card">
+    <div class="row between"><span class="h">Truck ${esc(j.truck)} is yours</span><span class="chip gr">${j.how === "accepted" ? "Accepted" : j.how === "default" ? "By default" : "Assigned"}</span></div>
+    <div class="row between"><span class="big">${esc(rupees(j.pay))}</span>${STAND_IN}</div>
+    <div class="steps">${steps.map(([label, on]) => `<div class="step ${on ? "on" : ""}"><i></i>${label}</div>`).join("")}</div>
+    ${facts([[j.report_time, "Report by"], [j.stops, "Stops"], [`${j.kg} kg`, "Load"]])}
+    <div class="row between small"><span class="muted">Stops closed</span><span class="num">${esc(j.closed)} of ${esc(j.stops)}</span></div>
+    <div class="meter"><i style="width:${share}%"></i></div>
+    ${stops ? `<div>${stops}</div>` : ""}
+  </div>`;
+}
+
+function drawToday(d) {
+  $("today").innerHTML = d.job ? jobCard(d.job) : d.offer ? offerCard(d)
+    : `<div class="card"><div class="row between"><span class="h">${d.gone ? "Job went to another driver" : "No job yet"}</span><span class="chip mu">Waiting</span></div></div>`;
+}
+
+function drawHistory(h) {
+  $("rate").innerHTML = stars(h.rating);
+  const top = Math.max(...h.earned_by_day.map((x) => x.amount_inr), 1);
+  const bars = h.earned_by_day.map((x) => `<div class="slot" title="${esc(day(x.date))}: ${x.amount_inr ? esc(rupees(x.amount_inr)) : "no trip"}">${x.amount_inr ? `<div class="fill" style="height:${Math.max(8, (x.amount_inr / top) * 100)}%"></div>` : `<div class="none"></div>`}</div>`).join("");
+  const rows = (trip) => `<div class="item"><span class="badge">${esc(trip.truck)}</span><div class="main"><b>${esc(day(trip.date))}</b><span>${esc(trip.stops)} stops · ${esc(trip.kg)} kg · ${trip.on_time ? "on time" : `${esc(trip.late_minutes)} min late`}</span></div><div class="side"><b>${esc(rupees(trip.pay_inr))}</b>${stars(trip.stars)}</div></div>`;
+  const first = h.trips.slice(0, 5).map(rows).join("");
+  const rest = h.trips.slice(5).map(rows).join("");
+  $("history").innerHTML = `
+    <div class="sec"><h2>Last 30 days</h2>${STAND_IN}</div>
+    <div class="hero">
+      <div class="row between"><div><div class="label">Earned</div><div class="big">${esc(rupees(h.earned_inr))}</div></div>${STAND_IN}</div>
+      <div><div class="bars" role="img" aria-label="Earnings per day for the last 30 days">${bars}</div>
+      <div class="axis" style="margin-top:5px"><span>${esc(day(h.earned_by_day[0].date))}</span><span>${esc(day(h.earned_by_day[h.earned_by_day.length - 1].date))}</span></div></div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><b>${esc(h.trips_count)}</b><span>Trips</span></div>
+      <div class="tile"><b>${Number(h.rating).toFixed(1)}</b><span>Rating</span></div>
+      <div class="tile"><b>${esc(h.on_time_pct)}%</b><span>On time</span></div>
+      <div class="tile"><b>${esc(h.acceptance_pct)}%</b><span>Offers accepted</span></div>
+    </div>
+    <div class="sec"><h2>Trips</h2>${STAND_IN}</div>
+    <div class="card list">${first}${rest ? `<details class="more"><summary>Show ${h.trips.length - 5} more</summary>${rest}</details>` : ""}</div>`;
 }
 
 document.addEventListener("click", async (event) => {
   const el = event.target.closest("[data-answer], [data-drop]");
   if (!el) return;
-  err.textContent = "";
+  $("err").textContent = "";
   el.disabled = true;
   try {
     if (el.dataset.answer) await post("/api/phone/driver", { driver, truck: el.dataset.truck, accept: el.dataset.answer === "1" });
     else await post("/api/phone/drop", { driver, retailer: el.dataset.drop, delivered: el.dataset.ok === "1" });
     poller.refresh();
-  } catch (e) { err.textContent = e.message; el.disabled = false; }
+  } catch (e) { $("err").textContent = e.message; el.disabled = false; }
 });
 
-poller = poll(`/api/phone/driver/${driver}`, draw);
+poller = poll(`/api/phone/driver/${encodeURIComponent(driver)}`, drawToday);
+getJson(`/api/history/driver/${encodeURIComponent(driver)}`).then(drawHistory).catch((e) => { $("err").textContent = e.message; });
 </script>
 </body>
 </html>

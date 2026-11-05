@@ -1,0 +1,1224 @@
+{
+ "_note": "Stand-ins. All of this is invented for the demo: no driver, trip, rating, earning or gate record here was measured. Run scripts/make_history.py to rebuild it.",
+ "as_of": "2026-10-15",
+ "drivers": {
+  "D02": {
+   "offers_seen": 16,
+   "trips": [
+    {
+     "date": "2026-09-16",
+     "truck": "V3",
+     "stops": 16,
+     "kg": 1624,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-19",
+     "truck": "V2",
+     "stops": 22,
+     "kg": 1912,
+     "pay_inr": 2702,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-22",
+     "truck": "V3",
+     "stops": 20,
+     "kg": 1468,
+     "pay_inr": 3043,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-23",
+     "truck": "V1",
+     "stops": 29,
+     "kg": 3425,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-25",
+     "truck": "V1",
+     "stops": 33,
+     "kg": 2849,
+     "pay_inr": 4869,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-26",
+     "truck": "V2",
+     "stops": 24,
+     "kg": 2107,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-28",
+     "truck": "V1",
+     "stops": 33,
+     "kg": 3037,
+     "pay_inr": 5504,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-29",
+     "truck": "V2",
+     "stops": 24,
+     "kg": 2176,
+     "pay_inr": 3055,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-30",
+     "truck": "V2",
+     "stops": 19,
+     "kg": 2650,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-03",
+     "truck": "V2",
+     "stops": 22,
+     "kg": 2351,
+     "pay_inr": 3055,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-07",
+     "truck": "V3",
+     "stops": 19,
+     "kg": 1421,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-08",
+     "truck": "V3",
+     "stops": 14,
+     "kg": 1683,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-10",
+     "truck": "V3",
+     "stops": 13,
+     "kg": 1595,
+     "pay_inr": 3043,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-13",
+     "truck": "V1",
+     "stops": 28,
+     "kg": 3189,
+     "pay_inr": 5504,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-15",
+     "truck": "V3",
+     "stops": 20,
+     "kg": 1424,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    }
+   ]
+  },
+  "D04": {
+   "offers_seen": 12,
+   "trips": [
+    {
+     "date": "2026-09-17",
+     "truck": "V3",
+     "stops": 16,
+     "kg": 1350,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-18",
+     "truck": "V2",
+     "stops": 20,
+     "kg": 2103,
+     "pay_inr": 2702,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-24",
+     "truck": "V3",
+     "stops": 18,
+     "kg": 1278,
+     "pay_inr": 3043,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-28",
+     "truck": "V3",
+     "stops": 12,
+     "kg": 1088,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-30",
+     "truck": "V1",
+     "stops": 33,
+     "kg": 3048,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-03",
+     "truck": "V3",
+     "stops": 13,
+     "kg": 1609,
+     "pay_inr": 2692,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-05",
+     "truck": "V3",
+     "stops": 17,
+     "kg": 1031,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-07",
+     "truck": "V2",
+     "stops": 17,
+     "kg": 1963,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-10",
+     "truck": "V2",
+     "stops": 20,
+     "kg": 2128,
+     "pay_inr": 2350,
+     "on_time": false,
+     "late_minutes": 10,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-12",
+     "truck": "V3",
+     "stops": 18,
+     "kg": 1296,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-15",
+     "truck": "V2",
+     "stops": 23,
+     "kg": 2066,
+     "pay_inr": 2702,
+     "on_time": false,
+     "late_minutes": 13,
+     "stars": 5
+    }
+   ]
+  },
+  "D01": {
+   "offers_seen": 20,
+   "trips": [
+    {
+     "date": "2026-09-18",
+     "truck": "V3",
+     "stops": 19,
+     "kg": 1452,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-21",
+     "truck": "V1",
+     "stops": 37,
+     "kg": 3052,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-22",
+     "truck": "V1",
+     "stops": 34,
+     "kg": 2902,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-23",
+     "truck": "V2",
+     "stops": 24,
+     "kg": 2291,
+     "pay_inr": 3055,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-24",
+     "truck": "V2",
+     "stops": 19,
+     "kg": 2270,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-25",
+     "truck": "V3",
+     "stops": 19,
+     "kg": 1523,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-01",
+     "truck": "V1",
+     "stops": 31,
+     "kg": 2939,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-05",
+     "truck": "V1",
+     "stops": 36,
+     "kg": 3275,
+     "pay_inr": 5504,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-06",
+     "truck": "V1",
+     "stops": 35,
+     "kg": 3263,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-08",
+     "truck": "V1",
+     "stops": 28,
+     "kg": 2888,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-09",
+     "truck": "V1",
+     "stops": 26,
+     "kg": 3233,
+     "pay_inr": 4869,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-10",
+     "truck": "V1",
+     "stops": 28,
+     "kg": 3401,
+     "pay_inr": 4869,
+     "on_time": false,
+     "late_minutes": 22,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-12",
+     "truck": "V1",
+     "stops": 35,
+     "kg": 3026,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-13",
+     "truck": "V3",
+     "stops": 17,
+     "kg": 1593,
+     "pay_inr": 2692,
+     "on_time": false,
+     "late_minutes": 25,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-14",
+     "truck": "V2",
+     "stops": 21,
+     "kg": 1929,
+     "pay_inr": 3055,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-15",
+     "truck": "V1",
+     "stops": 32,
+     "kg": 2853,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    }
+   ]
+  },
+  "D03": {
+   "offers_seen": 11,
+   "trips": [
+    {
+     "date": "2026-09-16",
+     "truck": "V1",
+     "stops": 34,
+     "kg": 3173,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-19",
+     "truck": "V1",
+     "stops": 29,
+     "kg": 2828,
+     "pay_inr": 4869,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-22",
+     "truck": "V2",
+     "stops": 23,
+     "kg": 2104,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-25",
+     "truck": "V2",
+     "stops": 23,
+     "kg": 2511,
+     "pay_inr": 2702,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-29",
+     "truck": "V1",
+     "stops": 26,
+     "kg": 3113,
+     "pay_inr": 4869,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-02",
+     "truck": "V3",
+     "stops": 20,
+     "kg": 1494,
+     "pay_inr": 2341,
+     "on_time": false,
+     "late_minutes": 24,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-06",
+     "truck": "V3",
+     "stops": 14,
+     "kg": 1573,
+     "pay_inr": 3043,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-09",
+     "truck": "V3",
+     "stops": 18,
+     "kg": 1278,
+     "pay_inr": 2692,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-12",
+     "truck": "V2",
+     "stops": 23,
+     "kg": 2292,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    }
+   ]
+  },
+  "D06": {
+   "offers_seen": 16,
+   "trips": [
+    {
+     "date": "2026-09-17",
+     "truck": "V2",
+     "stops": 19,
+     "kg": 2186,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-23",
+     "truck": "V3",
+     "stops": 19,
+     "kg": 1079,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-24",
+     "truck": "V1",
+     "stops": 36,
+     "kg": 3033,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-26",
+     "truck": "V1",
+     "stops": 36,
+     "kg": 2900,
+     "pay_inr": 5504,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-29",
+     "truck": "V3",
+     "stops": 12,
+     "kg": 1110,
+     "pay_inr": 3043,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-09-30",
+     "truck": "V3",
+     "stops": 18,
+     "kg": 1692,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-02",
+     "truck": "V2",
+     "stops": 17,
+     "kg": 1909,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 5
+    },
+    {
+     "date": "2026-10-05",
+     "truck": "V2",
+     "stops": 16,
+     "kg": 2479,
+     "pay_inr": 2702,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-06",
+     "truck": "V2",
+     "stops": 24,
+     "kg": 2492,
+     "pay_inr": 2350,
+     "on_time": false,
+     "late_minutes": 10,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-07",
+     "truck": "V1",
+     "stops": 28,
+     "kg": 3201,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-09",
+     "truck": "V2",
+     "stops": 20,
+     "kg": 2566,
+     "pay_inr": 3055,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-14",
+     "truck": "V1",
+     "stops": 31,
+     "kg": 3124,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    }
+   ]
+  },
+  "D08": {
+   "offers_seen": 6,
+   "trips": [
+    {
+     "date": "2026-09-17",
+     "truck": "V1",
+     "stops": 29,
+     "kg": 3175,
+     "pay_inr": 5504,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-18",
+     "truck": "V1",
+     "stops": 35,
+     "kg": 2892,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-28",
+     "truck": "V2",
+     "stops": 21,
+     "kg": 2683,
+     "pay_inr": 2350,
+     "on_time": false,
+     "late_minutes": 12,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-01",
+     "truck": "V2",
+     "stops": 21,
+     "kg": 2267,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    }
+   ]
+  },
+  "D07": {
+   "offers_seen": 14,
+   "trips": [
+    {
+     "date": "2026-09-16",
+     "truck": "V2",
+     "stops": 23,
+     "kg": 2256,
+     "pay_inr": 3055,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-19",
+     "truck": "V3",
+     "stops": 18,
+     "kg": 1047,
+     "pay_inr": 2341,
+     "on_time": false,
+     "late_minutes": 23,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-21",
+     "truck": "V3",
+     "stops": 15,
+     "kg": 1524,
+     "pay_inr": 3043,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-09-26",
+     "truck": "V3",
+     "stops": 15,
+     "kg": 1567,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-01",
+     "truck": "V3",
+     "stops": 15,
+     "kg": 1166,
+     "pay_inr": 3043,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-02",
+     "truck": "V1",
+     "stops": 30,
+     "kg": 2847,
+     "pay_inr": 4869,
+     "on_time": false,
+     "late_minutes": 14,
+     "stars": 3
+    },
+    {
+     "date": "2026-10-03",
+     "truck": "V1",
+     "stops": 36,
+     "kg": 3032,
+     "pay_inr": 4234,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-08",
+     "truck": "V2",
+     "stops": 20,
+     "kg": 2119,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-13",
+     "truck": "V2",
+     "stops": 20,
+     "kg": 2112,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    }
+   ]
+  },
+  "D05": {
+   "offers_seen": 3,
+   "trips": [
+    {
+     "date": "2026-09-21",
+     "truck": "V2",
+     "stops": 23,
+     "kg": 1947,
+     "pay_inr": 2350,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    },
+    {
+     "date": "2026-10-14",
+     "truck": "V3",
+     "stops": 16,
+     "kg": 1158,
+     "pay_inr": 2341,
+     "on_time": true,
+     "late_minutes": 0,
+     "stars": 4
+    }
+   ]
+  }
+ },
+ "depots": {
+  "BR-1": {
+   "days": [
+    {
+     "date": "2026-10-02",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D07",
+       "report": "06:00",
+       "in": "06:14",
+       "out": "06:40",
+       "late_minutes": 14,
+       "pick_lines": 42
+      },
+      {
+       "truck": "V2",
+       "driver": "D06",
+       "report": "06:15",
+       "in": "06:09",
+       "out": "06:39",
+       "late_minutes": 0,
+       "pick_lines": 23
+      },
+      {
+       "truck": "V3",
+       "driver": "D03",
+       "report": "06:30",
+       "in": "06:54",
+       "out": "07:21",
+       "late_minutes": 24,
+       "pick_lines": 22
+      }
+     ]
+    },
+    {
+     "date": "2026-10-03",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D07",
+       "report": "06:00",
+       "in": "05:57",
+       "out": "06:18",
+       "late_minutes": 0,
+       "pick_lines": 69
+      },
+      {
+       "truck": "V2",
+       "driver": "D02",
+       "report": "06:15",
+       "in": "06:14",
+       "out": "06:36",
+       "late_minutes": 0,
+       "pick_lines": 63
+      },
+      {
+       "truck": "V3",
+       "driver": "D04",
+       "report": "06:30",
+       "in": "06:27",
+       "out": "06:52",
+       "late_minutes": 0,
+       "pick_lines": 22
+      }
+     ]
+    },
+    {
+     "date": "2026-10-04",
+     "entries": []
+    },
+    {
+     "date": "2026-10-05",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D01",
+       "report": "06:00",
+       "in": "05:58",
+       "out": "06:20",
+       "late_minutes": 0,
+       "pick_lines": 44
+      },
+      {
+       "truck": "V2",
+       "driver": "D06",
+       "report": "06:15",
+       "in": "06:06",
+       "out": "06:29",
+       "late_minutes": 0,
+       "pick_lines": 27
+      },
+      {
+       "truck": "V3",
+       "driver": "D04",
+       "report": "06:30",
+       "in": "06:19",
+       "out": "06:45",
+       "late_minutes": 0,
+       "pick_lines": 33
+      }
+     ]
+    },
+    {
+     "date": "2026-10-06",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D01",
+       "report": "06:00",
+       "in": "05:56",
+       "out": "06:16",
+       "late_minutes": 0,
+       "pick_lines": 43
+      },
+      {
+       "truck": "V2",
+       "driver": "D06",
+       "report": "06:15",
+       "in": "06:25",
+       "out": "06:55",
+       "late_minutes": 10,
+       "pick_lines": 40
+      },
+      {
+       "truck": "V3",
+       "driver": "D03",
+       "report": "06:30",
+       "in": "06:18",
+       "out": "06:42",
+       "late_minutes": 0,
+       "pick_lines": 39
+      }
+     ]
+    },
+    {
+     "date": "2026-10-07",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D06",
+       "report": "06:00",
+       "in": "05:51",
+       "out": "06:13",
+       "late_minutes": 0,
+       "pick_lines": 36
+      },
+      {
+       "truck": "V2",
+       "driver": "D04",
+       "report": "06:15",
+       "in": "06:10",
+       "out": "06:39",
+       "late_minutes": 0,
+       "pick_lines": 33
+      },
+      {
+       "truck": "V3",
+       "driver": "D02",
+       "report": "06:30",
+       "in": "06:20",
+       "out": "06:40",
+       "late_minutes": 0,
+       "pick_lines": 48
+      }
+     ]
+    },
+    {
+     "date": "2026-10-08",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D01",
+       "report": "06:00",
+       "in": "05:59",
+       "out": "06:30",
+       "late_minutes": 0,
+       "pick_lines": 44
+      },
+      {
+       "truck": "V2",
+       "driver": "D07",
+       "report": "06:15",
+       "in": "06:13",
+       "out": "06:37",
+       "late_minutes": 0,
+       "pick_lines": 48
+      },
+      {
+       "truck": "V3",
+       "driver": "D02",
+       "report": "06:30",
+       "in": "06:23",
+       "out": "06:45",
+       "late_minutes": 0,
+       "pick_lines": 16
+      }
+     ]
+    },
+    {
+     "date": "2026-10-09",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D01",
+       "report": "06:00",
+       "in": "05:54",
+       "out": "06:26",
+       "late_minutes": 0,
+       "pick_lines": 69
+      },
+      {
+       "truck": "V2",
+       "driver": "D06",
+       "report": "06:15",
+       "in": "06:04",
+       "out": "06:29",
+       "late_minutes": 0,
+       "pick_lines": 51
+      },
+      {
+       "truck": "V3",
+       "driver": "D03",
+       "report": "06:30",
+       "in": "06:20",
+       "out": "06:46",
+       "late_minutes": 0,
+       "pick_lines": 54
+      }
+     ]
+    },
+    {
+     "date": "2026-10-10",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D01",
+       "report": "06:00",
+       "in": "06:22",
+       "out": "06:49",
+       "late_minutes": 22,
+       "pick_lines": 80
+      },
+      {
+       "truck": "V2",
+       "driver": "D04",
+       "report": "06:15",
+       "in": "06:25",
+       "out": "06:46",
+       "late_minutes": 10,
+       "pick_lines": 34
+      },
+      {
+       "truck": "V3",
+       "driver": "D02",
+       "report": "06:30",
+       "in": "06:29",
+       "out": "06:56",
+       "late_minutes": 0,
+       "pick_lines": 15
+      }
+     ]
+    },
+    {
+     "date": "2026-10-11",
+     "entries": []
+    },
+    {
+     "date": "2026-10-12",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D01",
+       "report": "06:00",
+       "in": "05:52",
+       "out": "06:18",
+       "late_minutes": 0,
+       "pick_lines": 94
+      },
+      {
+       "truck": "V2",
+       "driver": "D03",
+       "report": "06:15",
+       "in": "06:06",
+       "out": "06:30",
+       "late_minutes": 0,
+       "pick_lines": 49
+      },
+      {
+       "truck": "V3",
+       "driver": "D04",
+       "report": "06:30",
+       "in": "06:26",
+       "out": "06:47",
+       "late_minutes": 0,
+       "pick_lines": 46
+      }
+     ]
+    },
+    {
+     "date": "2026-10-13",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D02",
+       "report": "06:00",
+       "in": "05:52",
+       "out": "06:12",
+       "late_minutes": 0,
+       "pick_lines": 72
+      },
+      {
+       "truck": "V2",
+       "driver": "D07",
+       "report": "06:15",
+       "in": "06:09",
+       "out": "06:37",
+       "late_minutes": 0,
+       "pick_lines": 28
+      },
+      {
+       "truck": "V3",
+       "driver": "D01",
+       "report": "06:30",
+       "in": "06:55",
+       "out": "07:24",
+       "late_minutes": 25,
+       "pick_lines": 51
+      }
+     ]
+    },
+    {
+     "date": "2026-10-14",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D06",
+       "report": "06:00",
+       "in": "05:58",
+       "out": "06:29",
+       "late_minutes": 0,
+       "pick_lines": 82
+      },
+      {
+       "truck": "V2",
+       "driver": "D01",
+       "report": "06:15",
+       "in": "06:10",
+       "out": "06:38",
+       "late_minutes": 0,
+       "pick_lines": 31
+      },
+      {
+       "truck": "V3",
+       "driver": "D05",
+       "report": "06:30",
+       "in": "06:30",
+       "out": "07:00",
+       "late_minutes": 0,
+       "pick_lines": 18
+      }
+     ]
+    },
+    {
+     "date": "2026-10-15",
+     "entries": [
+      {
+       "truck": "V1",
+       "driver": "D01",
+       "report": "06:00",
+       "in": "05:49",
+       "out": "06:18",
+       "late_minutes": 0,
+       "pick_lines": 73
+      },
+      {
+       "truck": "V2",
+       "driver": "D04",
+       "report": "06:15",
+       "in": "06:28",
+       "out": "06:50",
+       "late_minutes": 13,
+       "pick_lines": 53
+      },
+      {
+       "truck": "V3",
+       "driver": "D02",
+       "report": "06:30",
+       "in": "06:29",
+       "out": "06:58",
+       "late_minutes": 0,
+       "pick_lines": 21
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

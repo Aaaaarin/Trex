@@ -30,6 +30,8 @@ A driver's message is required to close a drop, and the agent is instructed to l
 | Retailer types | Stand-ins inferred from records, not confirmed classifications. Retailer stock ranges are estimates. |
 | Retailer replies | Simulated from later bills, except on the team phone. |
 | Drivers, pay, willingness to accept, report times and gate times | All stand-ins, invented until the operator confirms them. The invoices hold none of this. |
+| Driver and depot history, ratings, earnings, on-time and acceptance figures | All stand-ins in `data/standins/history.json`, from `scripts/make_history.py`, and labelled on screen. Ratings decide who is offered a job first, so that order rests on invented numbers. |
+| A shop's past bills on the phone screen | Real but masked, up to the plan evening. Only the delivery status beside each bill is a stand-in. |
 | ETA | An estimate from gate-out time, stops closed and a stand-in 12 minutes per stop. There is no GPS. |
 | Upstream branch, plant, purchase-order and vehicle data | All stand-ins. Trace and vehicle matching are demonstrations, not live upstream feeds. |
 | Transporter list | Real companies from Crustdata, looked up on a public test lane rather than the operator's masked routes. It contacts nobody. Matching is by head office, so service on the lane is not confirmed, and refrigerated capability is what each company says of itself. In a five-lane test, 40 of 50 rows looked like real road carriers by an agent's judgement, with weaker refrigerated coverage. |
@@ -114,6 +116,7 @@ Run the full test suite with:
 - `trex/dispatch.py`: frozen plan versions, exact-scope approvals and the validator.
 - `trex/fleet.py`, `desk.py`, `fleet_api.py`: driver offers, default assignment, the dispatcher's gate log and the retailer line.
 - `trex/gate.py`, `store.py`: numeric claims matched to evidence, SQLite records, saved turns and event history.
+- `trex/history.py`: bill history from the invoices, and invented driver and depot history.
 - `trex/phone.py`, `trex/web/call.html`, `driver.html`, `gate.html`, `demo.html`: the voice order line, the driver's and dispatcher's screens, and the page that shows them together.
 - `trex/channels.py`: simulated replies and a Telegram team-phone adapter. `trex/orders_api.py`: local orders with read-back after injected write errors.
 - `trex/upstream.py`: trace and vehicle matching on stand-ins. `trex/replay.py`: October replay scoring. `trex/server.py`, `state.py` and `trex/web/`: API and browser interface.

@@ -8,62 +8,110 @@
 <link rel="stylesheet" href="/static/phone.css">
 </head>
 <body>
-<main>
-  <div class="top"><h1>Dispatcher</h1><span class="chip mu" id="status"></span></div>
-  <div id="view" style="display:flex;flex-direction:column;gap:12px"></div>
-  <p class="err" id="err" role="status"></p>
-</main>
+<div class="app">
+  <header class="bar" id="bar"></header>
+  <main class="content">
+    <div class="sec" style="margin-top:0"><h2>Today</h2><span class="chip mu" id="status"></span></div>
+    <div id="today" style="display:flex;flex-direction:column;gap:12px"></div>
+    <p class="err" id="err" role="status"></p>
+    <div id="history" style="display:flex;flex-direction:column;gap:12px"></div>
+  </main>
+</div>
 <script src="/static/phone.js"></script>
 <script>
-const { esc, rupees, post, poll } = Trex;
-const view = document.getElementById("view");
-const err = document.getElementById("err");
+const { esc, rupees, day, stars, post, poll, getJson, STAND_IN, MARK } = Trex;
+const depot = (new URLSearchParams(location.search).get("depot") || "BR-1").toUpperCase();
+const $ = (id) => document.getElementById(id);
+const REPLY = { yes: ["gr", "Yes"], no: ["mu", "No"], silent: ["mu", "No reply"], unclear: ["am", "Unclear"] };
+const STATUS = { working: "Trex deciding", waiting: "Up to date", needs_person: "Needs you", error: "Needs a look", closed: "Closed" };
 let poller;
 
-const REPLY = { yes: ["gr", "Yes"], no: ["mu", "No"], silent: ["mu", "No reply"], unclear: ["am", "Unclear"] };
+$("bar").innerHTML = `${MARK}<div class="who"><h1>Depot ${esc(depot)}</h1><small>Dispatcher</small></div>`;
 
 function decisionCard(d) {
-  return `<div class="card"><div class="row between"><h2>Needs approval</h2><span class="chip or">Waiting</span></div>
+  return `<div class="card"><div class="row between"><span class="h">Needs approval</span><span class="chip or">Waiting</span></div>
     <div class="small">${esc(d.question)}</div>
-    <div class="row">${(d.options || []).map((o, i) => `<button class="btn tiny ${i ? "" : "ink"}" data-decide="${esc(d.id)}" data-answer="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`;
+    <div class="row">${(d.options || []).map((o, i) => `<button class="btn mini ${i ? "" : "ink"}" data-decide="${esc(d.id)}" data-answer="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`;
 }
 
-function jobCard(j, started) {
-  if (j.status === "open") {
-    const rows = j.drivers.map((d) => {
-      const reply = REPLY[d.reply];
-      return `<div class="row between rule"><span class="num"><b>${esc(d.id)}</b> <span class="small muted">${esc(d.km)} km · ${esc(d.max_kg)} kg</span></span>
-        <span class="row">${reply ? `<span class="chip ${reply[0]}">${reply[1]}</span>` : d.asked ? `<span class="chip am">Asked</span>` : ""}<button class="btn tiny" data-assign="${esc(d.id)}" data-truck="${esc(j.truck)}">Assign</button></span></div>`;
-    }).join("");
-    return `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)}</h2><span class="chip or">Finding driver, round ${esc(j.round)}</span></div>
-      <div class="small muted num">${esc(rupees(j.pay))} offered · ${esc(j.stops)} stops · ${esc(j.kg)} kg</div>${rows}</div>`;
-  }
-  if (j.status === "no_driver") return `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)}</h2><span class="chip or">No driver free</span></div></div>`;
+function openJob(j) {
+  const rows = j.drivers.map((d) => {
+    const reply = REPLY[d.reply];
+    return `<div class="item"><span class="badge">${esc(d.id)}</span><div class="main">${stars(d.rating)}<span>${esc(d.km)} km · up to ${esc(d.max_kg)} kg</span></div><div class="side"><span class="row tight">${reply ? `<span class="chip ${reply[0]}">${reply[1]}</span>` : d.asked ? `<span class="chip am">Asked</span>` : ""}<button class="btn mini" data-assign="${esc(d.id)}" data-truck="${esc(j.truck)}">Assign</button></span></div></div>`;
+  }).join("");
+  return `<div class="card"><div class="row between"><span class="h">Truck ${esc(j.truck)}</span><span class="chip or">Finding driver, round ${esc(j.round)}</span></div>
+    <div class="row between"><span class="big">${esc(rupees(j.pay))}</span>${STAND_IN}</div>
+    <div class="facts"><div><b>${esc(j.stops)}</b><span>Stops</span></div><div><b>${esc(j.kg)} kg</b><span>Load</span></div><div><b>${esc(j.drivers.length)}</b><span>Drivers free</span></div></div>
+    <div class="row between small"><span class="muted">Best rated first</span>${STAND_IN}</div>
+    <div>${rows}</div></div>`;
+}
+
+function assignedJob(j, started) {
   const gateIn = j.gate.in, gateOut = j.gate.out;
   const picks = (j.picks || []).map((p) => `<tr><td>${esc(p.product_name)} <span class="mono muted">${esc(p.batch)}</span></td><td class="r">${esc(p.pieces)}</td></tr>`).join("");
-  return `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)}: ${esc(j.driver)}</h2><span class="chip ${j.how === "default" ? "am" : "gr"}">${j.how === "accepted" ? "Accepted" : j.how === "default" ? "Default" : "Picked"}</span></div>
-    <div class="small muted num">Report ${esc(j.report_time)} · ${esc(rupees(j.pay))} · ${esc(j.stops)} stops · ${esc(j.kg)} kg</div>
+  const steps = [["Assigned", true], ["Gate in", gateIn], ["Gate out", gateOut]];
+  return `<div class="card">
+    <div class="row between"><span class="h">Truck ${esc(j.truck)}: ${esc(j.driver)}</span><span class="chip ${j.how === "default" ? "am" : "gr"}">${j.how === "accepted" ? "Accepted" : j.how === "default" ? "By default" : "Picked"}</span></div>
+    <div class="steps">${steps.map(([label, on]) => `<div class="step ${on ? "on" : ""}"><i></i>${label}</div>`).join("")}</div>
+    <div class="facts"><div><b>${esc(j.report_time)}</b><span>Report</span></div><div><b>${esc(j.stops)}</b><span>Stops</span></div><div><b>${esc(j.kg)} kg</b><span>Load</span></div></div>
+    <div class="row between small"><span class="muted">Pay and gate times</span>${STAND_IN}</div>
     <div class="row">
-      ${gateIn ? `<span class="chip ${gateIn.late_minutes ? "am" : "gr"}">In ${esc(gateIn.clock)}${gateIn.late_minutes ? `, ${esc(gateIn.late_minutes)} min late` : ""}</span>` : `<button class="btn ink" data-gate="in" data-truck="${esc(j.truck)}" ${started ? "" : "disabled"}>Log in</button><button class="btn" data-noshow="${esc(j.truck)}" ${started ? "" : "disabled"}>No-show</button>`}
-      ${gateOut ? `<span class="chip gr">Out ${esc(gateOut.clock)}</span>` : gateIn ? `<button class="btn ink" data-gate="out" data-truck="${esc(j.truck)}">Log out</button>` : ""}
+      ${gateIn ? `<span class="chip ${gateIn.late_minutes ? "am" : "gr"}">In ${esc(gateIn.clock)}${gateIn.late_minutes ? `, ${esc(gateIn.late_minutes)} min late` : ""}</span>` : `<button class="btn ink grow" data-gate="in" data-truck="${esc(j.truck)}" ${started ? "" : "disabled"}>Log in</button><button class="btn" data-noshow="${esc(j.truck)}" ${started ? "" : "disabled"}>No-show</button>`}
+      ${gateOut ? `<span class="chip gr">Out ${esc(gateOut.clock)}</span>` : gateIn ? `<button class="btn ink grow" data-gate="out" data-truck="${esc(j.truck)}">Log out</button>` : ""}
     </div>
-    <details><summary class="small muted">Hand over, ${esc((j.picks || []).length)} lines</summary><table>${picks}</table></details></div>`;
+    <details data-picks="${esc(j.truck)}"><summary class="small muted" style="cursor:pointer">Hand over: ${esc((j.picks || []).length)} lines</summary><table style="margin-top:8px">${picks}</table></details>
+  </div>`;
 }
 
 function draw(d) {
-  document.getElementById("status").textContent = d.status || "No run";
-  if (!d.run) { view.innerHTML = `<div class="card"><p class="muted">Waiting for the first order</p></div>`; return; }
-  const assigned = d.jobs.some((j) => j.status === "assigned");
-  const start = assigned && !d.started ? `<button class="btn go" data-start="1">Start delivery day</button>` : "";
-  const done = d.started ? `<div class="small muted num">${esc(d.drops)} drops closed · ${esc(d.misses)} misses</div>` : "";
-  const empty = !d.jobs.length && !(d.decisions || []).length ? `<div class="card"><p class="muted">Trex is deciding the truck</p></div>` : "";
-  view.innerHTML = (d.decisions || []).map(decisionCard).join("") + empty + d.jobs.map((j) => jobCard(j, d.started)).join("") + start + done;
+  $("status").textContent = d.status ? (STATUS[d.status] || d.status) : "No orders yet";
+  if (!d.run) {
+    $("today").innerHTML = `<div class="card"><div class="row between"><span class="h">Waiting for the first order</span></div></div>`;
+    return;
+  }
+  const open = [...document.querySelectorAll("details[data-picks][open]")].map((el) => el.dataset.picks);
+  const assigned = d.jobs.filter((j) => j.status === "assigned");
+  const tiles = `<div class="tiles">
+    <div class="tile"><b>${esc(d.jobs.length)}</b><span>Trucks to send</span></div>
+    <div class="tile"><b>${esc(assigned.length)}</b><span>Drivers assigned</span></div>
+    <div class="tile"><b>${esc(assigned.filter((j) => j.gate.out).length)}</b><span>Left depot</span></div>
+    <div class="tile"><b>${esc(d.drops)}</b><span>Drops closed${d.misses ? `, ${esc(d.misses)} missed` : ""}</span></div></div>`;
+  const start = assigned.length && !d.started ? `<button class="btn go wide" data-start="1">Start delivery day</button>` : "";
+  const waiting = !d.jobs.length && !(d.decisions || []).length ? `<div class="card"><div class="row between"><span class="h">Trex is deciding the truck</span><span class="chip am">Working</span></div></div>` : "";
+  const cards = d.jobs.map((j) => (j.status === "open" ? openJob(j) : j.status === "no_driver" ? `<div class="card"><div class="row between"><span class="h">Truck ${esc(j.truck)}</span><span class="chip or">No driver free</span></div></div>` : assignedJob(j, d.started))).join("");
+  $("today").innerHTML = (d.decisions || []).map(decisionCard).join("") + waiting + start + cards + tiles;
+  open.forEach((truck) => { const el = document.querySelector(`details[data-picks="${CSS.escape(truck)}"]`); if (el) el.open = true; });
+}
+
+function drawHistory(h) {
+  const oldest = [...h.days].reverse();
+  const top = Math.max(...oldest.map((x) => x.trucks_out), 1);
+  const bars = oldest.map((x) => `<div class="slot" title="${esc(day(x.date))}: ${x.trucks_out} out, ${x.late} late">${x.trucks_out ? `${x.late ? `<div class="fill" style="height:${(x.late / top) * 100}%"></div>` : ""}${x.trucks_out - x.late ? `<div class="fill light" style="height:${((x.trucks_out - x.late) / top) * 100}%"></div>` : ""}` : `<div class="none"></div>`}</div>`).join("");
+  const rows = (x) => `<div class="item"><span class="badge">${esc(x.trucks_out)}</span><div class="main"><b>${esc(day(x.date))}</b><span>${x.trucks_out ? `${esc(x.trucks_in)} in, ${esc(x.trucks_out)} out · ${esc(x.pick_lists)} pick lists, ${esc(x.pick_lines)} lines` : "No dispatch"}</span></div><div class="side">${x.trucks_out ? (x.late ? `<span class="chip am">${esc(x.late)} late</span>` : `<span class="chip gr">On time</span>`) : `<span class="chip mu">Closed</span>`}</div></div>`;
+  const first = h.days.slice(0, 5).map(rows).join("");
+  const rest = h.days.slice(5).map(rows).join("");
+  $("history").innerHTML = `
+    <div class="sec"><h2>Last 14 days</h2>${STAND_IN}</div>
+    <div class="hero">
+      <div class="row between"><div><div class="label">Trucks out</div><div class="big">${esc(h.trucks_out)}</div></div>${STAND_IN}</div>
+      <div><div class="bars" role="img" aria-label="Trucks out per day for the last 14 days, split into on time and late">${bars}</div>
+      <div class="axis" style="margin-top:5px"><span>${esc(day(oldest[0].date))}</span><span>${esc(day(oldest[oldest.length - 1].date))}</span></div></div>
+      <div class="legend"><span><i style="background:var(--hero-mark)"></i>On time</span><span><i style="background:var(--accent)"></i>Late</span></div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><b>${esc(h.trucks_in)}</b><span>Trucks in</span></div>
+      <div class="tile"><b>${esc(h.on_time_pct)}%</b><span>On time</span></div>
+      <div class="tile"><b>${esc(h.late)}</b><span>Late arrivals</span></div>
+      <div class="tile"><b>${esc(h.pick_lists)}</b><span>Pick lists done</span></div>
+    </div>
+    <div class="sec"><h2>Gate log</h2>${STAND_IN}</div>
+    <div class="card list">${first}${rest ? `<details class="more"><summary>Show ${h.days.length - 5} more days</summary>${rest}</details>` : ""}</div>`;
 }
 
 document.addEventListener("click", async (event) => {
   const el = event.target.closest("[data-assign], [data-gate], [data-noshow], [data-start], [data-decide]");
   if (!el) return;
-  err.textContent = "";
+  $("err").textContent = "";
   el.disabled = true;
   try {
     if (el.dataset.assign) await post("/api/phone/assign", { truck: el.dataset.truck, driver: el.dataset.assign });
@@ -72,10 +120,11 @@ document.addEventListener("click", async (event) => {
     if (el.dataset.start) await post("/api/tomorrow");
     if (el.dataset.decide) await post(`/api/decision/${encodeURIComponent(el.dataset.decide)}`, { answer: el.dataset.answer, by: "dispatcher" });
     poller.refresh();
-  } catch (e) { err.textContent = e.message; el.disabled = false; }
+  } catch (e) { $("err").textContent = e.message; el.disabled = false; }
 });
 
 poller = poll("/api/phone/dispatch", draw);
+getJson(`/api/history/depot/${encodeURIComponent(depot)}`).then(drawHistory).catch((e) => { $("err").textContent = e.message; });
 </script>
 </body>
 </html>

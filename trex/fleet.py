@@ -15,7 +15,7 @@ import threading
 import time
 import traceback
 
-from . import channels, dispatch, store
+from . import channels, dispatch, history, store
 from .config import DATA, standin
 
 CONFIG = json.loads((DATA / "standins" / "fleet.json").read_text(encoding="utf-8"))
@@ -108,9 +108,9 @@ def _busy(run: str) -> set[str]:
 
 
 def _ranked(run: str, job: dict) -> list[str]:
-    """Nearest first, as the pay is the same for everyone in a round and empty running is the only difference."""
+    """Best rated first, then nearest. Pay is the same for everyone in a round, and ratings are stand-ins."""
     free = [d for d in CONFIG["drivers"] if d["id"] not in _busy(run) and d["id"] not in job["excluded"] and d["max_kg"] >= job["kg"]]
-    return [d["id"] for d in sorted(free, key=lambda d: (d["km_to_depot"] * CONFIG["deadhead_inr_per_km"], d["id"]))]
+    return [d["id"] for d in sorted(free, key=lambda d: (-history.rating(d["id"]), d["km_to_depot"] * CONFIG["deadhead_inr_per_km"], d["id"]))]
 
 
 def _plan_live(run: str, job: dict) -> bool:

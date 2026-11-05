@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import fleet_api, orchestrator, orders_api, phone, state, store
+from . import fleet_api, history, orchestrator, orders_api, phone, state, store
 from .config import DEMO
 
 WEB = Path(__file__).parent / "web"
@@ -17,6 +17,7 @@ app.mount("/static", StaticFiles(directory=WEB), name="static")
 app.include_router(fleet_api.router)
 app.include_router(phone.router)
 app.include_router(phone.pages)
+app.include_router(history.router)
 
 
 @app.middleware("http")

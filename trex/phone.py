@@ -17,7 +17,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 
-from . import channels, desk, fleet, orchestrator, store
+from . import channels, desk, fleet, history, orchestrator, store
 from .agent import Agent
 from .config import DEMO
 from .ledger import Ledger
@@ -193,7 +193,7 @@ def driver_view(driver: str) -> dict:
         return out
     for job in all_jobs:
         if job["status"] == "open" and driver in job["asked"]:
-            out["offer"] = {"truck": job["truck"], "stops": job["stops"], "kg": job["kg"], "pay": job["pay"], "round": job["round"], "km": fleet.ROSTER[driver]["km_to_depot"]}
+            out["offer"] = {"truck": job["truck"], "stops": job["stops"], "kg": job["kg"], "pay": job["pay"], "round": job["round"], "km": fleet.ROSTER[driver]["km_to_depot"], "rating": history.rating(driver), "offered_first": next(iter(job["asked"]), None) == driver}
             out["answered"] = any(r["driver"] == driver and r["round"] == job["round"] for r in job["replies"])
             return out
     out["gone"] = any(driver in j["asked"] for j in all_jobs)
@@ -211,7 +211,7 @@ def dispatch_view() -> dict:
             continue
         latest = {r["driver"]: r for r in job["replies"]}
         ranked = fleet._ranked(run, job) if job["status"] == "open" else []
-        drivers = [{"id": d, "km": fleet.ROSTER[d]["km_to_depot"], "max_kg": fleet.ROSTER[d]["max_kg"], "asked": d in job["asked"], "reply": latest.get(d, {}).get("answer")} for d in ranked]
+        drivers = [{"id": d, "rating": history.rating(d), "km": fleet.ROSTER[d]["km_to_depot"], "max_kg": fleet.ROSTER[d]["max_kg"], "asked": d in job["asked"], "reply": latest.get(d, {}).get("answer")} for d in ranked]
         jobs.append({**job, "drivers": drivers, "picks": fleet._pick_list(run, job["truck"])})
     row = store.rows("select status from runs where id=?", (run,))
     decisions = store.rows("select id, question, options from decisions where run=? and answer is null order by ts", (run,))

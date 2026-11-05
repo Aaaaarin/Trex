@@ -7,53 +7,59 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/static/phone.css">
 <style>
-  .dial { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--gr-fg); color: #fff; cursor: pointer; display: grid; place-items: center; margin: 4px auto 0; }
+  .dial { width: 68px; height: 68px; border-radius: 50%; border: 0; background: var(--call); color: #fff; cursor: pointer; display: grid; place-items: center; flex: none; }
   .dial.end { background: var(--accent); }
-  .dial svg { width: 30px; height: 30px; }
+  .dial svg { width: 28px; height: 28px; }
   .dial.end svg { transform: rotate(135deg); }
-  .state { text-align: center; }
-  .talk { display: flex; flex-direction: column; gap: 6px; max-height: 38vh; overflow-y: auto; }
-  .say { padding: 7px 10px; border-radius: 10px; max-width: 86%; font-size: 14px; }
-  .say.them { background: var(--mu-bg); align-self: flex-start; }
-  .say.me { background: var(--or-bg); color: var(--or-fg); align-self: flex-end; }
-  .say.done { background: var(--gr-bg); color: var(--gr-fg); align-self: stretch; max-width: 100%; font-size: 13px; }
-  .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-  .step { font-size: 11px; color: var(--muted); }
-  .step i { display: block; height: 4px; border-radius: 2px; background: var(--track); margin-bottom: 5px; }
-  .step.on i { background: var(--accent); }
-  .step.on { color: var(--text); }
-  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-  .typed { display: grid; grid-template-columns: 1fr 64px auto; gap: 6px; margin-top: 8px; }
+  .callhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .hero .label b { color: var(--on-hero); font-weight: 500; }
+  .hero h2 { font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
+  .hero select { background: var(--hero); border-color: var(--hero-rule); color: var(--on-hero); }
+  .talk { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+  .talk:empty { display: none; }
+  .say { padding: 7px 10px; border-radius: 12px; max-width: 86%; font-size: 14px; }
+  .say.them { background: #2F2F29; color: #FAFAF7; align-self: flex-start; }
+  .say.me { background: var(--accent); color: #fff; align-self: flex-end; }
+  .say.done { background: #16301F; color: #72CF99; align-self: stretch; max-width: 100%; font-size: 13px; }
+  .typed { display: grid; grid-template-columns: 1fr 62px auto; gap: 6px; margin-top: 10px; }
+  details > summary { cursor: pointer; }
 </style>
 </head>
 <body>
-<main>
-  <div class="top"><h1>Order line</h1><span class="chip mu" id="line">Ready</span></div>
-  <select id="shop" aria-label="Calling as shop"></select>
-  <div class="card">
-    <div class="state small muted" id="state">Tap to call</div>
-    <button class="dial" id="dial" aria-label="Call"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg></button>
-    <div class="talk" id="talk" aria-live="polite"></div>
-  </div>
-  <div class="card">
-    <div class="steps" id="steps"></div>
-    <div class="small muted" id="orders"></div>
-  </div>
-  <details>
-    <summary>Type the order</summary>
-    <form class="typed" id="typed">
-      <select id="prod" aria-label="Product"></select>
-      <input id="qty" type="number" min="1" value="25" aria-label="Cases">
-      <button class="btn ink">Send</button>
-    </form>
-  </details>
-  <p class="err" id="err" role="status"></p>
-</main>
+<div class="app">
+  <header class="bar" id="bar"></header>
+  <main class="content">
+    <div class="hero">
+      <div class="callhead">
+        <div class="grow"><div class="label" id="line">Trex order line</div><h2 id="state">Tap to call</h2></div>
+        <button class="dial" id="dial" aria-label="Call"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg></button>
+      </div>
+      <div class="talk" id="talk" aria-live="polite"></div>
+      <select id="shop" aria-label="Calling as shop"></select>
+    </div>
+    <div class="sec"><h2>Today's order</h2></div>
+    <div class="card">
+      <div class="steps" id="steps"></div>
+      <div class="small" id="orders"></div>
+      <details>
+        <summary class="small muted">Type the order instead</summary>
+        <form class="typed" id="typed">
+          <select id="prod" aria-label="Product"></select>
+          <input id="qty" type="number" min="1" value="25" aria-label="Cases">
+          <button class="btn mini ink">Send</button>
+        </form>
+      </details>
+    </div>
+    <p class="err" id="err" role="status"></p>
+    <div id="history" style="display:flex;flex-direction:column;gap:12px"></div>
+  </main>
+</div>
 <script src="/static/phone.js"></script>
 <script>
-const { esc, post, poll } = Trex;
+const { esc, rupees, day, post, poll, getJson, STAND_IN, MARK } = Trex;
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
+const DELIVERY = { delivered: ["gr", "Delivered"], late: ["am", "Late"], short: ["or", "Short"] };
 let call = null;
 
 function bubble(cls, text) {
@@ -67,8 +73,7 @@ function bubble(cls, text) {
 function setCalling(on, text) {
   $("dial").classList.toggle("end", on);
   $("dial").setAttribute("aria-label", on ? "End call" : "Call");
-  $("line").textContent = on ? "On call" : "Ready";
-  $("line").className = `chip ${on ? "gr" : "mu"}`;
+  $("line").textContent = on ? "On call" : "Trex order line";
   $("state").textContent = text;
 }
 
@@ -78,7 +83,7 @@ async function runTool(channel, event) {
   let output;
   try {
     output = await post("/api/phone/tool", { retailer: $("shop").value, name: event.name, args });
-    if (event.name === "place_order") bubble("done", output.truck ? `${output.status}: ${output.truck}, ${output.fill_percent ?? ""}%` : output.status);
+    if (event.name === "place_order" && output.status === "added") bubble("done", `Added to truck ${output.truck}, now ${output.fill_percent}% full`);
   } catch (e) {
     output = { status: "failed", say: "Abhi system se jawab nahi aaya. Kuch pakka nahi hai." };
   }
@@ -153,16 +158,47 @@ function drawShop(d) {
     const shown = k === "order" || !v ? label : k === "delivered" ? (v === "delivered" ? label : "Failed") : esc(v);
     return `<div class="step ${v ? "on" : ""}"><i></i>${shown}</div>`;
   }).join("");
-  $("orders").textContent = (d.orders || []).map((o) => `${o.pieces} pcs ${o.product}`).join(", ");
+  $("orders").innerHTML = (d.orders || []).length
+    ? d.orders.map((o) => `<div class="row between"><span>${esc(o.product)}</span><b class="num" style="font-weight:500">${esc(o.pieces)} pcs</b></div>`).join("")
+    : `<span class="muted">No order yet today</span>`;
+}
+
+function drawHistory(h) {
+  $("bar").innerHTML = `${MARK}<div class="who"><h1>${esc(h.name)}</h1><small class="mono">${esc(h.retailer)}</small></div><span class="chip gr">Real bills</span>`;
+  const usual = h.usual.map((u) => `<div class="item"><div class="main"><b>${esc(u.name)}</b><div class="share"><i style="width:${Math.max(3, u.share * 100)}%"></i></div></div><div class="side"><b>${esc(rupees(u.amount_inr))}</b><span class="tiny muted">${esc(u.bills)} bill${u.bills === 1 ? "" : "s"}</span></div></div>`).join("");
+  const rows = (b) => {
+    const tone = DELIVERY[b.delivery] || ["mu", b.delivery];
+    return `<div class="item"><div class="main"><b>${esc(day(b.date))}</b><span>${esc(b.lines)} items · ${esc(b.top_products[0] || "")}</span></div><div class="side"><b>${esc(rupees(b.amount_inr))}</b><span class="chip ${tone[0]}">${tone[1]}</span></div></div>`;
+  };
+  const first = h.bills.slice(0, 5).map(rows).join("");
+  const rest = h.bills.slice(5).map(rows).join("");
+  $("history").innerHTML = `
+    <div class="sec"><h2>This month, to ${esc(day(h.records_to))}</h2><span class="chip gr">Real bills</span></div>
+    <div class="tiles">
+      <div class="tile"><b>${esc(rupees(h.total_inr))}</b><span>Billed</span></div>
+      <div class="tile"><b>${esc(h.bills_count)}</b><span>Bills</span></div>
+      <div class="tile"><b>${esc(rupees(h.average_inr))}</b><span>Average bill</span></div>
+      <div class="tile"><b>${esc(day(h.last_bill))}</b><span>Last bill</span></div>
+    </div>
+    <div class="sec"><h2>Usually buys</h2></div>
+    <div class="card list">${usual}</div>
+    <div class="sec"><h2>Past bills</h2><span class="row tight tiny muted">Delivery status ${STAND_IN}</span></div>
+    <div class="card list">${first}${rest ? `<details class="more"><summary>Show ${h.bills.length - 5} more</summary>${rest}</details>` : ""}</div>`;
+}
+
+function loadHistory() {
+  getJson(`/api/history/shop/${encodeURIComponent($("shop").value)}`).then(drawHistory).catch((e) => { $("err").textContent = e.message; });
 }
 
 (async function init() {
-  const shops = await (await fetch("/api/phone/shops")).json();
+  const shops = await getJson("/api/phone/shops");
   $("shop").innerHTML = shops.map((s) => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.id)})</option>`).join("");
-  const wanted = params.get("shop");
-  if (wanted) $("shop").value = wanted;
-  const products = await (await fetch("/api/phone/products")).json();
+  const wanted = params.get("shop") || "R-865";
+  if (shops.some((s) => s.id === wanted)) $("shop").value = wanted;
+  const products = await getJson("/api/phone/products");
   $("prod").innerHTML = products.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+  $("shop").addEventListener("change", loadHistory);
+  loadHistory();
   poll(() => `/api/phone/shop/${encodeURIComponent($("shop").value)}`, drawShop, 1500);
 })();
 
