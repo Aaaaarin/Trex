@@ -13,7 +13,7 @@ DB_PATH = Path(os.environ.get("TREX_DB", RUNTIME / "trex.sqlite"))
 
 load_dotenv(Path.home() / ".trex.env", override=False)
 
-MODEL = "claude-opus-5-5"
+MODEL = os.environ.get("TREX_MODEL", "gpt-6.1-sol")
 ASSUMPTIONS = json.loads((ROOT / "assumptions.json").read_text(encoding="utf-8"))
 DEMO = ASSUMPTIONS["demo"]
 

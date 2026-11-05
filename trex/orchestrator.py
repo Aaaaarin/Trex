@@ -5,7 +5,7 @@ import time
 import traceback
 
 from . import channels, store
-from .agent import Agent
+from .agent import Agent, has_pending_work
 from .config import DEMO
 
 
@@ -32,13 +32,11 @@ class Runner:
     def _has_work(self) -> bool:
         if store.unhandled_inbox(self.run):
             return True
-        pending = store.rows("select id from decisions where run=? and answer is not null and id not in (select value from kv where run=? and key like 'seen_decision:%')", (self.run, self.run))
-        if pending:
+        seen = store.get_kv(self.run, "seen_decisions", [])
+        answered = store.rows("select id from decisions where run=? and answer is not null", (self.run,))
+        if any(d["id"] not in seen for d in answered):
             return True
-        turns = store.get_turns(self.run)
-        if not turns:
-            return False
-        return turns[-1]["role"] == "user" or any(b.get("type") == "tool_use" for b in turns[-1]["content"])
+        return has_pending_work(store.get_turns(self.run))
 
     def _loop(self) -> None:
         agent = None

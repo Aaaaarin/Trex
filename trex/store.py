@@ -103,7 +103,7 @@ def add_turn(run: str, role: str, content: Any) -> None:
 
 
 def get_turns(run: str) -> list[dict]:
-    return [{"role": r["role"], "content": json.loads(r["content"])} for r in rows("select role, content from turns where run=? order by seq", (run,))]
+    return [json.loads(r["content"]) for r in rows("select content from turns where run=? order by seq", (run,))]
 
 
 def add_inbox(run: str, sender: str, role: str, text: str, simulated: bool, dedupe: str, data: Any = None) -> bool:

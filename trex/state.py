@@ -10,7 +10,8 @@ from .tools import Tools
 from .upstream import cover, trace
 
 BUTTER = "P006"
-PRICE_PER_MTOK = {"input": 4.0, "output": 20.0, "cache_read": 0.20, "cache_write": 5.0}
+# Approximate list prices for the model in use. Unconfirmed, so cost is shown as an estimate.
+PRICE_PER_MTOK = {"input": 5.0, "output": 30.0, "cache_read": 0.50}
 _night_cache: dict[str, tuple[str, Night]] = {}
 
 
@@ -58,13 +59,14 @@ def _offer_rows(run: str, truck: str) -> list[dict]:
 
 
 def _cost(run: str) -> dict:
-    total = {"input": 0, "output": 0, "cache_read": 0, "cache_write": 0, "calls": 0}
+    total = {"input": 0, "output": 0, "cache_read": 0, "calls": 0}
     for e in _events(run, ("llm_usage",), 2000):
         total["calls"] += 1
-        for k in ("input", "output", "cache_read", "cache_write"):
+        for k in ("input", "output", "cache_read"):
             total[k] += e.get(k) or 0
-    usd = sum(total[k] * PRICE_PER_MTOK[k] for k in PRICE_PER_MTOK) / 1_000_000
-    return {**total, "usd": round(usd, 3)}
+    uncached = max(0, total["input"] - total["cache_read"])
+    usd = (uncached * PRICE_PER_MTOK["input"] + total["cache_read"] * PRICE_PER_MTOK["cache_read"] + total["output"] * PRICE_PER_MTOK["output"]) / 1_000_000
+    return {**total, "usd": round(usd, 3), "estimated": True}
 
 
 def butter_chart() -> dict:

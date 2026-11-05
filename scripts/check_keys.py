@@ -13,17 +13,20 @@ def report(name: str, ok: bool, detail: str = "") -> None:
     print(f"{name}: {'OK' if ok else 'FAILED'} {detail}".strip())
 
 
-def anthropic_key() -> None:
-    key = os.environ.get("ANTHROPIC_API_KEY")
+def openai_key() -> None:
+    key = os.environ.get("CHATGPT_API_KEY")
     if not key:
-        return report("Anthropic", False, "not set")
-    import anthropic
+        return report("OpenAI", False, "not set")
+    import openai
 
+    model = os.environ.get("TREX_MODEL", "gpt-6.1-sol")
+    tool = {"type": "function", "name": "ping", "description": "Ping", "strict": True, "parameters": {"type": "object", "properties": {"word": {"type": "string"}}, "required": ["word"], "additionalProperties": False}}
     try:
-        r = anthropic.Anthropic().messages.create(model="claude-opus-5-5", max_tokens=16, output_config={"effort": "low"}, messages=[{"role": "user", "content": "Reply with the word ok"}])
-        report("Anthropic", True, f"stop_reason={r.stop_reason}")
-    except anthropic.APIStatusError as err:
-        report("Anthropic", False, f"status {err.status_code}")
+        r = openai.OpenAI(api_key=key).responses.create(model=model, reasoning={"effort": "low"}, max_output_tokens=400, tools=[tool], input="Call ping with the word ok", store=False, include=["reasoning.encrypted_content"])
+        kinds = [i.type for i in r.output]
+        report("OpenAI", True, f"model={model} output={kinds}")
+    except openai.APIStatusError as err:
+        report("OpenAI", False, f"model={model} status {err.status_code}: {str(err.message)[:140]}")
 
 
 def crustdata_key() -> None:
@@ -52,7 +55,7 @@ def twilio_key() -> None:
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
-    for check in (anthropic_key, crustdata_key, telegram_key, twilio_key):
+    for check in (openai_key, crustdata_key, telegram_key, twilio_key):
         try:
             check()
         except Exception as err:

@@ -110,9 +110,9 @@ def test_paper_cover_is_not_real_cover():
     assert upstream.trace("P006")["stopped_at"] == "open purchase order has no truck"
 
 
-class _Block(SimpleNamespace):
+class _Item(SimpleNamespace):
     def model_dump(self, **_):
-        return {k: v for k, v in vars(self).items()}
+        return {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": self.text}]}
 
 
 class FakeClient:
@@ -121,25 +121,19 @@ class FakeClient:
     def __init__(self, script):
         self.script = list(script)
         self.seen = []
-        self.beta = SimpleNamespace(messages=SimpleNamespace(create=self._create))
+        self.responses = SimpleNamespace(create=self._create)
 
     def _create(self, **kw):
-        self.seen.append(kw["messages"])
-        blocks = self.script.pop(0)
-        stop = "tool_use" if any(b.type == "tool_use" for b in blocks) else "end_turn"
-        return SimpleNamespace(content=blocks, stop_reason=stop, usage=SimpleNamespace(input_tokens=1, output_tokens=1))
-
-
-def _use(i, name, **inp):
-    return _Block(type="tool_use", id=f"tu{i}", name=name, input=inp)
+        self.seen.append(kw["input"])
+        return SimpleNamespace(output=[_Item(text=self.script.pop(0))], usage=SimpleNamespace(input_tokens=1, output_tokens=1, input_tokens_details=None))
 
 
 def test_crash_after_saved_turn_resumes_and_never_sends_twice(run):
-    send = _use(1, "send_message", role="salesman", recipient="S01", text="Route check karo", claims=[])
+    call = {"type": "function_call", "call_id": "c1", "name": "send_message", "arguments": json.dumps({"role": "salesman", "recipient": "S01", "text": "Route check karo", "claims": []})}
     # A crash here: the model's turn is saved, its tool never ran.
-    store.add_turn(run, "user", [{"type": "text", "text": "go"}])
-    store.add_turn(run, "assistant", [send.model_dump()])
-    client = FakeClient([[_Block(type="text", text="done")]])
+    store.add_turn(run, "user", {"role": "user", "content": "go"})
+    store.add_turn(run, "function_call", call)
+    client = FakeClient(["done"])
     agent = Agent(run, client, EVENING, DAY)
     assert agent.advance() == "waiting"
     assert len(store.rows("select * from outbox where run=?", (run,))) == 1
@@ -150,9 +144,9 @@ def test_crash_after_saved_turn_resumes_and_never_sends_twice(run):
 
 
 def test_history_is_append_only(run):
-    client = FakeClient([[_Block(type="text", text="a")], [_Block(type="text", text="b")]])
+    client = FakeClient(["a", "b"])
     agent = Agent(run, client, EVENING, DAY)
-    store.add_turn(run, "user", [{"type": "text", "text": "first"}])
+    store.add_turn(run, "user", {"role": "user", "content": "first"})
     agent.advance()
     before = json.dumps(store.get_turns(run))
     store.add_inbox(run, "R-1", "retailer", "haan", True, "d9")

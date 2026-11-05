@@ -58,4 +58,4 @@ python -m venv .venv
 .venv/Scripts/python -m pytest tests -q
 ```
 
-Create `~/.trex.env` with `CRUSTDATA_API_KEY=...`. Do not commit it.
+Create `~/.trex.env` with `CRUSTDATA_API_KEY=...`, and `CHATGPT_API_KEY=...` if that laptop runs the agent. Do not commit it.
