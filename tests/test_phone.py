@@ -120,3 +120,14 @@ def test_fleet_api_carries_the_stand_in_note():
 
     note = TestClient(app).get("/api/fleet").json()["note"]
     assert "several real trucks" in note and "invented" in note
+
+
+def test_a_tap_on_the_dispatcher_screen_is_not_logged_as_simulated(no_agent):
+    shop = phone.shops()[0]["id"]
+    phone.place_order(shop, "P004", 25, "case")
+    run = phone._latest()
+    job = {**_open_job(run, ["D02"]), "status": "assigned", "driver": "D02", "how": "accepted", "report_time": "06:00"}
+    fleet._save(run, job)
+    store.execute("insert into plans(run, truck, version, status, data, hash, ts) values(?,?,?,?,?,?,?)", (run, "V2", 1, "issued", json.dumps({"lines": [], "option": "go", "fill": 0.8, "kg": 2000, "unplaced": []}), "h", time.time()))
+    result = phone.post_gate(phone.GateTap(truck="V2", event="in"))
+    assert result["gate"]["in"]["simulated"] is False

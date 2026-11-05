@@ -241,6 +241,11 @@ class Assign(BaseModel):
     driver: str
 
 
+class GateTap(BaseModel):
+    truck: str
+    event: str
+
+
 class Drop(BaseModel):
     driver: str
     retailer: str
@@ -328,6 +333,15 @@ def get_dispatch() -> dict:
     return jsonable_encoder(dispatch_view())
 
 
+@router.post("/gate")
+def post_gate(body: GateTap) -> dict:
+    """A person tapped this on the dispatcher's screen, so it is not a simulated log."""
+    run = _latest()
+    if not run:
+        raise HTTPException(400, "No run yet")
+    return jsonable_encoder(fleet.log_gate(run, body.truck, body.event, simulated=False))
+
+
 @router.post("/assign")
 def post_assign(body: Assign) -> dict:
     run = _latest()
@@ -363,6 +377,11 @@ def driver_page() -> FileResponse:
 @pages.get("/gate")
 def gate_page() -> FileResponse:
     return _page("gate.html")
+
+
+@pages.get("/agents")
+def agents_page() -> FileResponse:
+    return _page("agents.html")
 
 
 @pages.get("/demo")

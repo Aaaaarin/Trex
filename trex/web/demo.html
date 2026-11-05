@@ -16,6 +16,9 @@
   .lead { flex: 1; min-width: 0; display: flex; flex-direction: column; border-left: 1px solid var(--rule); background: var(--surface); }
   .lead .cap { padding: 8px 14px; border-bottom: 1px solid var(--rule); font-size: 13px; font-weight: 500; color: var(--muted); }
   .lead iframe { flex: 1; width: 100%; border: 0; }
+  .lead .cap { display: flex; gap: 4px; padding: 6px 8px; }
+  .seg { border: 0; background: none; cursor: pointer; padding: 4px 11px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); }
+  .seg.on { background: var(--mu-bg); color: var(--text); }
   body.no-lead .lead { display: none; }
   body.no-lead .phones { flex: 1; }
   .unit { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -33,7 +36,7 @@
 <header class="top"><span id="mark"></span><h1>Trex</h1><button class="btn mini" id="lead">Hide lead</button><button class="btn mini" id="reset">Reset</button></header>
 <div class="wall">
   <div class="phones" id="phones"></div>
-  <section class="lead"><div class="cap">Dispatch lead</div><iframe src="/?top=1#/trucks" title="Dispatch lead"></iframe></section>
+  <section class="lead"><div class="cap" role="tablist" aria-label="Lead pane"><button class="seg on" id="show-dash" role="tab" aria-selected="true">Dashboard</button><button class="seg" id="show-agents" role="tab" aria-selected="false">Agents at work</button></div><iframe id="dash" src="/?top=1#/trucks" title="Dispatch lead"></iframe><iframe id="agents" title="Agents at work" hidden></iframe></section>
 </div>
 <script src="/static/phone.js"></script>
 <script>
@@ -62,6 +65,19 @@ document.getElementById("lead").addEventListener("click", (event) => {
   event.currentTarget.textContent = hidden ? "Show lead" : "Hide lead";
 });
 if (params.get("lead") === "0") document.getElementById("lead").click();
+function showPane(agents) {
+  const frame = document.getElementById("agents");
+  if (agents && !frame.getAttribute("src")) frame.setAttribute("src", "/agents");
+  frame.hidden = !agents;
+  document.getElementById("dash").hidden = agents;
+  document.getElementById("show-agents").classList.toggle("on", agents);
+  document.getElementById("show-dash").classList.toggle("on", !agents);
+  document.getElementById("show-agents").setAttribute("aria-selected", String(agents));
+  document.getElementById("show-dash").setAttribute("aria-selected", String(!agents));
+}
+document.getElementById("show-dash").addEventListener("click", () => showPane(false));
+document.getElementById("show-agents").addEventListener("click", () => showPane(true));
+if (params.get("pane") === "agents") showPane(true);
 document.getElementById("reset").addEventListener("click", async () => {
   await Trex.post("/api/reset");
   location.reload();

@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trex agents at work</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/phone.css">
+<style>
+  body { background: var(--surface); }
+  .wrap { padding: 12px 14px 24px; display: flex; flex-direction: column; gap: 10px; }
+  .lane { border: 1px solid var(--rule); border-radius: 12px; padding: 11px 12px; display: flex; flex-direction: column; gap: 7px; background: var(--surface); }
+  .lane.on { border-color: var(--accent); }
+  .lane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .lane-head h2 { font-size: 14px; font-weight: 600; }
+  .lines { display: flex; flex-direction: column; gap: 5px; }
+  .lines:empty { display: none; }
+  .line { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 6px; font-size: 13px; line-height: 1.35; }
+  .line time { color: var(--muted); font-size: 11px; line-height: 18px; font-variant-numeric: tabular-nums; }
+  .line .say { overflow-wrap: anywhere; }
+  .tag { display: inline-block; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 7px; background: var(--mu-bg); color: var(--mu-fg); font-weight: 600; margin-right: 4px; vertical-align: 1px; }
+  .fresh { animation: come-in 0.45s ease-out; }
+  @keyframes come-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .fresh { animation: none; } }
+
+  .hero.finder { gap: 10px; padding: 12px; border-radius: 12px; }
+  .finder .lane-head h2 { color: var(--on-hero); }
+  .finder .job { display: flex; flex-direction: column; gap: 9px; }
+  .finder .job + .job { border-top: 1px solid var(--hero-rule); padding-top: 10px; }
+  .finder .sub { color: var(--hero-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .finder .pay { font-size: 24px; line-height: 1.1; font-weight: 500; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .scale { height: 4px; border-radius: 2px; background: var(--hero-track); overflow: hidden; }
+  .scale i { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s ease-out; }
+  .round { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 6px; align-items: start; font-size: 12px; }
+  .round b { font-weight: 500; font-variant-numeric: tabular-nums; line-height: 20px; }
+  .round .who { display: flex; flex-wrap: wrap; gap: 4px; }
+  .outcome { font-size: 14px; font-weight: 500; }
+  .rank { display: grid; grid-template-columns: 14px 30px auto minmax(34px, 1fr) auto; gap: 6px; align-items: center; padding: 5px 0; border-top: 1px solid var(--hero-rule); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .rank .n { color: var(--hero-muted); }
+  .rank b { font-weight: 600; }
+  .rank .where { color: var(--hero-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank.out { opacity: 0.5; }
+  .rank.won { background: rgba(232, 89, 12, 0.18); margin: 0 -6px; padding: 5px 6px; border-radius: 6px; border-top-color: transparent; }
+  .rate { font-size: 12px; }
+  .stars { font-size: 11px; letter-spacing: 0; }
+  .meter-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .meter-row .meter { flex: 1; }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <section class="lane" id="lane-order"><div class="lane-head"><h2>Order line</h2><span class="chip mu" id="chip-order">Waiting</span></div><div class="lines" id="lines-order"></div></section>
+  <section class="lane" id="lane-planner"><div class="lane-head"><h2>Planner</h2><span class="chip mu" id="chip-planner">Waiting</span></div><div class="lines" id="lines-planner"></div></section>
+  <section class="hero finder" id="lane-finder"><div class="lane-head"><h2>Driver finder</h2><span class="row tight" id="finder-tags"><span class="chip mu" id="chip-finder">Waiting</span></span></div><div id="jobs" style="display:flex;flex-direction:column;gap:10px"></div></section>
+  <section class="lane" id="lane-dispatch"><div class="lane-head"><h2>Dispatcher</h2><span class="chip mu" id="chip-dispatch">Waiting</span></div><div class="lines" id="lines-dispatch"></div></section>
+  <section class="lane" id="lane-delivery"><div class="lane-head"><h2>Delivery</h2><span class="chip mu" id="chip-delivery">Waiting</span></div><div id="drops"></div><div class="lines" id="lines-delivery"></div></section>
+</div>
+<script src="/static/phone.js"></script>
+<script>
+const { esc, rupees, stars, poll, getJson, STAND_IN } = Trex;
+const $ = (id) => document.getElementById(id);
+const KEEP = { order: 2, planner: 3, dispatch: 2, delivery: 2 };
+const CHIP = { Waiting: "mu", Working: "am", "Waiting for a person": "or", Done: "gr" };
+const short = (text, n) => { const s = String(text || "").replace(/\s+/g, " ").trim(); return s.length > n ? `${s.slice(0, n - 1).trimEnd()}...` : s; };
+const clock = (ts) => new Date(ts * 1000).toLocaleTimeString("en-GB");
+
+$("finder-tags").insertAdjacentHTML("afterbegin", STAND_IN);
+
+let S = null, F = null, runId = null;
+let seen = new Set(), rounds = {}, ratings = {}, shown = new Set();
+
+function reset(run) {
+  runId = run;
+  seen = new Set();
+  rounds = {};
+  shown = new Set();
+  Object.keys(KEEP).forEach((lane) => { $(`lines-${lane}`).innerHTML = ""; });
+  $("jobs").innerHTML = "";
+  $("drops").innerHTML = "";
+}
+
+function addLine(lane, ts, text, model) {
+  const box = $(`lines-${lane}`);
+  const el = document.createElement("div");
+  el.className = "line fresh";
+  el.innerHTML = `<time>${esc(clock(ts))}</time><div class="say">${model ? `<span class="tag">${esc(model)}</span>` : ""}${esc(text)}</div>`;
+  box.prepend(el);
+  while (box.children.length > KEEP[lane]) box.lastChild.remove();
+}
+
+/* Words for each recorded event. Anything not listed here is left off the page. */
+const MODEL_TOOLS = {
+  find_records: (a) => `Looked up "${short(a.text, 60)}"`,
+  truck_board: () => "Read the truck board",
+  billing_gap: (a) => `Read billing history of ${a.product}`,
+  trace_upstream: (a) => `Traced ${a.product} upstream`,
+  price_options: (a) => `Priced the options for ${a.truck}`,
+  plan_offers: (a) => `Planned offers for ${a.truck}`,
+  send_offer: (a) => `Offered ${a.pieces} pieces of ${a.product} to ${a.retailer}`,
+  accept_offer: (a) => `Accepted ${a.retailer}'s yes for ${a.pieces} pieces`,
+  release_offer: (a) => `Released the offer to ${a.retailer}`,
+  preview_plan: (a) => `Previewed the plan for ${a.truck}`,
+  freeze_plan: (a) => `Chose ${a.option} for ${a.truck}: ${short(a.reason, 110)}`,
+  hold_truck: (a) => `Chose to hold ${a.truck}: ${short(a.reason, 110)}`,
+  merge_truck: (a) => `Chose to merge ${a.truck} into ${a.into}: ${short(a.reason, 90)}`,
+};
+
+function route(e) {
+  switch (e.kind) {
+    case "load_changed":
+      if (e.source === "request") addLine("order", e.ts, `Order placed: ${e.pieces} pieces of ${e.product} for ${e.retailer}`);
+      addLine("planner", e.ts, `${e.truck} load now ${Math.round(e.kg)} kg, ${Math.round(e.fill * 100)}% full`);
+      break;
+    case "desk_answered":
+      addLine("order", e.ts, `${e.retailer} said "${short(e.text, 60)}". Answered: ${short(e.answer, 70)}`, e.by === "model" ? "Model" : "");
+      break;
+    case "tool_call":
+      if (MODEL_TOOLS[e.name]) addLine("planner", e.ts, MODEL_TOOLS[e.name](e.args || {}), "Model");
+      break;
+    case "tool_error": addLine("planner", e.ts, `A step failed: ${e.name}`); break;
+    case "decision_requested": addLine("planner", e.ts, `Asked a person: ${short(e.question, 130)}`, "Model"); break;
+    case "decision_answered": addLine("planner", e.ts, `${e.by} answered: ${short(e.answer, 60)}`); break;
+    case "plan_rejected": addLine("planner", e.ts, `Checks refused the plan for ${e.truck}: ${short((e.problems || []).join("; "), 110)}`); break;
+    case "plan_frozen": addLine("planner", e.ts, `Checks passed. ${e.truck} plan v${e.version} frozen: ${Math.round(e.kg)} kg, ${Math.round(e.fill * 100)}% full`); break;
+    case "orders_written": addLine("planner", e.ts, `Orders written for ${e.truck}${e.blocked ? `, ${e.blocked} blocked` : ""}`); break;
+    case "order_read_back_found": addLine("planner", e.ts, "Order system failed after saving. Read back, no duplicate made"); break;
+    case "load_sheet_issued": addLine("planner", e.ts, `Load sheet issued for ${e.truck}, ${e.stops} stops`); break;
+    case "truck_held": addLine("planner", e.ts, `${e.truck} held, ${e.stops} stops`); break;
+    case "truck_merged": addLine("planner", e.ts, `${e.truck} merged into ${e.into}, ${e.stops} stops`); break;
+    case "selling_stopped": addLine("planner", e.ts, `Stopped selling on ${e.truck}: target out of reach`); break;
+    case "gate_blocked": addLine("planner", e.ts, "Source check blocked a number with no evidence"); break;
+    case "message_sent":
+      if (e.role === "dispatcher") addLine("dispatch", e.ts, `Told the dispatcher: ${short(e.text, 130)}`);
+      break;
+    case "gate_logged": addLine("dispatch", e.ts, `${e.truck} gate ${e.event} at ${e.clock} demo clock, driver ${e.driver}${e.late_minutes ? `, ${e.late_minutes} min late` : ""}${e.simulated ? ", simulated" : ""}`); break;
+    case "driver_no_show": addLine("dispatch", e.ts, `${e.driver} did not report for ${e.truck}`); break;
+    case "drop_recorded": addLine("delivery", e.ts, `${e.retailer} ${e.status} on ${e.truck}${e.photo ? ", photo received" : ""}`); break;
+    case "miss_logged": addLine("delivery", e.ts, `Miss logged: ${e.product}, ${short(e.stage, 40)}`); break;
+    default:
+  }
+}
+
+function setChip(lane, status) {
+  const chip = $(`chip-${lane}`);
+  chip.textContent = status;
+  chip.className = `chip ${CHIP[status]}`;
+  const box = $(`lane-${lane}`);
+  if (lane !== "finder") box.classList.toggle("on", status === "Working" || status === "Waiting for a person");
+}
+
+function eventRounds(job) {
+  return rounds[`${job.truck}:${job.version}`] || {};
+}
+
+function chipFor(reply) {
+  const map = { yes: ["gr", "yes"], no: ["mu", "no"], silent: ["mu", "no reply"], unclear: ["am", "unclear"] };
+  const [tone, word] = map[reply.answer] || ["mu", reply.answer];
+  return [tone, word];
+}
+
+function roundRows(job) {
+  const known = eventRounds(job);
+  const rows = [];
+  for (let n = 1; n <= job.round; n += 1) {
+    const replies = job.replies.filter((r) => r.round === n);
+    const pay = known[n] ? known[n].pay : replies.length ? replies[0].pay : n === job.round ? job.pay : null;
+    const names = known[n] ? known[n].drivers : replies.map((r) => r.driver);
+    const who = names.map((d) => {
+      const reply = replies.filter((r) => r.driver === d).pop();
+      const [tone, word] = reply ? chipFor(reply) : ["am", "asked"];
+      const key = `${job.truck}:${n}:${d}:${word}`;
+      const fresh = !shown.has(key);
+      shown.add(key);
+      return `<span class="chip ${tone} ${fresh ? "fresh" : ""}">${esc(d)} ${word}${reply && !reply.simulated ? ", live" : ""}</span>`;
+    }).join("");
+    rows.push(`<div class="round"><b>${pay === null ? `Round ${n}` : esc(rupees(pay))}</b><div class="who">${who}</div></div>`);
+  }
+  return rows.join("");
+}
+
+function outcome(job) {
+  if (job.status === "assigned") {
+    if (job.how === "accepted") return `${job.driver} accepted at ${rupees(job.pay)}`;
+    if (job.how === "default") return `Nobody accepted. ${job.driver} assigned by default at ${rupees(job.pay)}`;
+    return `Dispatcher picked ${job.driver} at ${rupees(job.pay)}`;
+  }
+  if (job.status === "no_driver") return "No driver free. A person has to find one";
+  return "";
+}
+
+function rankRows(job) {
+  const list = (F.drivers || []).slice().sort((a, b) => (ratings[b.id] || 0) - (ratings[a.id] || 0) || a.km_to_depot - b.km_to_depot || a.id.localeCompare(b.id));
+  const lastReply = {};
+  job.replies.forEach((r) => { lastReply[r.driver] = r; });
+  return list.map((d, i) => {
+    let tone = "mu", word = "Not asked", cls = "";
+    if (job.driver === d.id) { tone = "gr"; word = job.how === "accepted" ? "Accepted" : job.how === "default" ? "By default" : "Picked"; cls = "won"; }
+    else if (job.excluded.includes(d.id)) { tone = "or"; word = "No-show"; cls = "out"; }
+    else if (d.max_kg < job.kg) { word = "Too small"; cls = "out"; }
+    else if (d.truck && d.truck !== job.truck) { word = `On ${d.truck}`; cls = "out"; }
+    else if (lastReply[d.id] && lastReply[d.id].round === job.round) { [tone, word] = chipFor(lastReply[d.id]); word = word[0].toUpperCase() + word.slice(1); }
+    else if (job.status === "open" && job.asked[d.id]) { tone = "am"; word = "Asked"; }
+    else if (lastReply[d.id]) { [tone, word] = chipFor(lastReply[d.id]); word = word[0].toUpperCase() + word.slice(1); }
+    return `<div class="rank ${cls}"><span class="n">${i + 1}</span><b>${esc(d.id)}</b>${ratings[d.id] ? stars(ratings[d.id]) : "<span></span>"}<span class="where">${esc(d.km_to_depot)} km</span><span class="chip ${tone}">${esc(word)}</span></div>`;
+  }).join("");
+}
+
+function drawJobs(jobs) {
+  const html = jobs.map((job) => {
+    const span = Math.max(job.ceiling - job.base_pay, 1);
+    const share = Math.max(3, Math.min(100, ((job.pay - job.base_pay) / span) * 100));
+    const end = outcome(job);
+    return `<div class="job">
+      <div class="row between tight"><div><div class="pay">${esc(rupees(job.pay))}</div><div class="sub">Truck ${esc(job.truck)}, ${esc(job.stops)} stops, ${esc(job.kg)} kg</div></div><span class="chip ${job.status === "open" ? "am" : job.status === "assigned" ? "gr" : "or"}">${job.status === "open" ? `Round ${esc(job.round)}` : job.status === "assigned" ? "Found" : "Stuck"}</span></div>
+      <div><div class="scale"><i style="width:${share}%"></i></div><div class="axis" style="margin-top:3px"><span>${esc(rupees(job.base_pay))} start</span><span>${esc(rupees(job.ceiling))} limit</span></div></div>
+      ${roundRows(job)}
+      ${end ? `<div class="outcome fresh" data-end>${esc(end)}</div>` : ""}
+      <div>${rankRows(job)}</div>
+    </div>`;
+  }).join("");
+  const box = $("jobs");
+  const hadEnd = box.querySelector("[data-end]");
+  box.innerHTML = html;
+  if (hadEnd) box.querySelectorAll("[data-end]").forEach((el) => el.classList.remove("fresh"));
+}
+
+function drawDrops(state, jobs) {
+  const drops = Object.values(state.drops || {});
+  const delivered = drops.filter((d) => d.status === "delivered").length;
+  const failed = drops.length - delivered;
+  const stops = jobs.filter((j) => j.status === "assigned").reduce((sum, j) => sum + j.stops, 0);
+  $("drops").innerHTML = stops && state.delivery_started ? `<div class="meter-row"><div class="meter"><i style="width:${Math.round((drops.length / stops) * 100)}%"></i></div><span>${drops.length} of ${stops}</span></div><div class="small muted num" style="margin-top:3px">${delivered} delivered, ${failed} failed</div>` : "";
+  return { closed: drops.length, stops };
+}
+
+function statuses(state, jobs, drop) {
+  const run = state.run;
+  const orders = (state.load_events || []).some((e) => e.source === "request");
+  setChip("order", orders ? "Done" : "Waiting");
+  const open = (state.decisions || []).some((d) => d.answer === null);
+  const decided = state.board.trucks.some((t) => t.decision);
+  const working = run && run.status === "working";
+  setChip("planner", open ? "Waiting for a person" : decided ? "Done" : working ? "Working" : "Waiting");
+  const live = jobs.filter((j) => j.status !== "cancelled");
+  const stuck = live.some((j) => j.status === "no_driver");
+  const finding = live.some((j) => j.status === "open");
+  setChip("finder", stuck ? "Waiting for a person" : finding ? "Working" : live.length ? "Done" : "Waiting");
+  const assigned = live.filter((j) => j.status === "assigned");
+  const allOut = assigned.length && assigned.every((j) => j.gate.out);
+  setChip("dispatch", allOut ? "Done" : assigned.length ? "Waiting for a person" : "Waiting");
+  setChip("delivery", !state.delivery_started || !allOut ? "Waiting" : drop.stops && drop.closed >= drop.stops ? "Done" : "Working");
+}
+
+function render() {
+  if (!S || !F) return;
+  const run = S.run ? S.run.id : null;
+  if (run !== runId) reset(run);
+  if (!run) {
+    ["order", "planner", "finder", "dispatch", "delivery"].forEach((l) => setChip(l, "Waiting"));
+    return;
+  }
+  (S.timeline || []).forEach((e) => {
+    if (seen.has(e.seq)) return;
+    seen.add(e.seq);
+    if (e.kind === "job_offered") {
+      const key = `${e.truck}:${e.version}`;
+      rounds[key] = rounds[key] || {};
+      rounds[key][e.round] = { pay: e.pay, drivers: e.drivers };
+    }
+    route(e);
+  });
+  const jobs = (F.run === run ? F.jobs : []) || [];
+  drawJobs(jobs);
+  statuses(S, jobs, drawDrops(S, jobs));
+  (F.drivers || []).forEach((d) => {
+    if (ratings[d.id] !== undefined) return;
+    ratings[d.id] = 0;
+    getJson(`/api/history/driver/${encodeURIComponent(d.id)}`).then((h) => { ratings[d.id] = h.rating; drawJobs((F.run === runId ? F.jobs : []) || []); }).catch(() => {});
+  });
+}
+
+poll("/api/state", (d) => { S = d; render(); }, 1000);
+poll("/api/fleet", (d) => { F = d; render(); }, 1000);
+</script>
+</body>
+</html>

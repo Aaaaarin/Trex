@@ -115,7 +115,7 @@ document.addEventListener("click", async (event) => {
   el.disabled = true;
   try {
     if (el.dataset.assign) await post("/api/phone/assign", { truck: el.dataset.truck, driver: el.dataset.assign });
-    if (el.dataset.gate) await post("/api/fleet/gate", { truck: el.dataset.truck, event: el.dataset.gate });
+    if (el.dataset.gate) await post("/api/phone/gate", { truck: el.dataset.truck, event: el.dataset.gate });
     if (el.dataset.noshow) await post(`/api/fleet/no_show/${encodeURIComponent(el.dataset.noshow)}`);
     if (el.dataset.start) await post("/api/tomorrow");
     if (el.dataset.decide) await post(`/api/decision/${encodeURIComponent(el.dataset.decide)}`, { answer: el.dataset.answer, by: "dispatcher" });
