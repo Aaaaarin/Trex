@@ -70,6 +70,10 @@ def _wake(run: str) -> None:
         RUNNERS[run].wake.set()
 
 
+def ensure_poller() -> None:
+    _ensure_poller()
+
+
 def _ensure_poller() -> None:
     global _poller
     if _poller is None:
@@ -117,6 +121,7 @@ def run_tomorrow(run: str, failed_share: int = 11) -> dict:
         stops = sorted({row["retailer"] for row in sheet})
         for i, retailer in enumerate(stops):
             if retailer in live_stops:
+                channels.send(run, "driver", f"driver-{truck}", f"Drop at {retailer}: photo bhejo", f"{run}:drop-ask:{truck}:{retailer}", {"stop": retailer})
                 continue
             failed = (i + 1) % failed_share == 0
             text = f"{retailer} dukan band thi, maal wapas" if failed else f"{retailer} delivered"

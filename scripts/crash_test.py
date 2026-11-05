@@ -77,8 +77,7 @@ def main() -> None:
         outbox = [r[0] for r in query("select recipient || '|' || text from outbox")]
         repeated = [k for k, n in collections.Counter(outbox).items() if n > 1]
         orders = query("select count(*), count(distinct key) from test_orders")[0]
-        calls = query("select data from turns where role='function_call'")
-        print("resumed", resumes, "| status", status, "| messages", len(outbox), "| identical messages sent twice", len(repeated), "| orders", orders[0], "distinct", orders[1], "| drops", len(s["drops"]), "| steps", len(calls) if calls else query("select count(*) from turns")[0][0])
+        print("resumed", resumes, "| status", status, "| messages", len(outbox), "| identical messages sent twice", len(repeated), "| orders", orders[0], "distinct", orders[1], "| drops", len(s["drops"]))
         ok = resumes >= 1 and not repeated and orders[0] == orders[1] and orders[0] > 0 and len(s["drops"]) > 0
         print("PASS" if ok else "FAIL")
     finally:

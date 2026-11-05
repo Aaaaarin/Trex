@@ -158,6 +158,9 @@ class Tools:
             o["evidence_id"] = store.add_evidence(self.run, "estimate", f"offer:{o['retailer']}:{o['product']}", f"Why offer {o['product']} to {o['retailer']}", o)
         data = {"truck": truck, "needs_kg": round(gap), "asking": len(chosen), "not_asking": len(candidates) - len(chosen), "offers": chosen, "max_discount_inr_per_pack": standin("max_discount_inr_per_pack"), "note": "Offer whole cases. Offer a discount only where discount_inr_per_piece is above zero"}
         data["discount_evidence_id"] = self._standin_evidence("max_discount", "Allowed discount, stand-in", {"max_discount_inr_per_pack": standin("max_discount_inr_per_pack")})
+        # With a phone connected, the first retailer asked and the approver become live. All others stay simulated.
+        if channels.live_chat() and chosen and not store.get_kv(self.run, "live", {}).get("recipients"):
+            store.set_kv(self.run, "live", {"recipients": [chosen[0]["retailer"]], "roles": ["approver", "driver"]})
         known = store.get_kv(self.run, f"offers:{truck}", {})
         known.update({o["retailer"]: o for o in chosen if o["retailer"] not in known})
         store.set_kv(self.run, f"offers:{truck}", known)

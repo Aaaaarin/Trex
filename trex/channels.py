@@ -10,6 +10,7 @@ import threading
 import time
 
 import httpx
+import openai
 import pandas as pd
 
 from . import store
@@ -98,6 +99,17 @@ class Simulator(threading.Thread):
                         self.on_reply()
 
 
+def _transcribe(token: str, file_id: str) -> str:
+    """Turn a voice note into text. If that fails, say so, and the agent treats it as unclear."""
+    try:
+        path = httpx.get(f"https://api.telegram.org/bot{token}/getFile", params={"file_id": file_id}, timeout=20).json()["result"]["file_path"]
+        audio = httpx.get(f"https://api.telegram.org/file/bot{token}/{path}", timeout=60).content
+        client = openai.OpenAI(api_key=os.environ["CHATGPT_API_KEY"], timeout=60)
+        return client.audio.transcriptions.create(model="gpt-4o-transcribe", file=("note.ogg", audio)).text
+    except (httpx.HTTPError, KeyError, openai.OpenAIError) as err:
+        return f"(could not transcribe: {type(err).__name__})"
+
+
 class TelegramPoller(threading.Thread):
     """Reads the builder's own chat for the most recent run. The first message registers the chat."""
 
@@ -124,10 +136,24 @@ class TelegramPoller(threading.Thread):
                     continue
                 store.set_kv(GLOBAL, "telegram_chat", chat)
                 run = self.latest_run()
-                text = msg.get("text") or msg.get("caption") or ("[photo]" if msg.get("photo") else "[voice note, not transcribed]" if msg.get("voice") else "")
+                text = msg.get("text") or msg.get("caption") or ("[photo]" if msg.get("photo") else "")
+                if msg.get("voice"):
+                    text = "[voice note] " + _transcribe(token, msg["voice"]["file_id"])
                 if not run or text.startswith("/start"):
                     continue
                 last = store.get_kv(run, "last_live", {})
-                store.add_inbox(run, last.get("recipient", "unknown"), last.get("role", "unknown"), text, False, f"tg:{update['update_id']}", {"offer": last.get("offer"), "photo": bool(msg.get("photo")), "retailer": last.get("recipient")})
+                offer = last.get("offer") or {}
+                stop = offer.get("stop")
+                if last.get("role") == "approver":
+                    open_decision = store.rows("select id from decisions where run=? and answer is null order by ts desc limit 1", (run,))
+                    if open_decision:
+                        store.execute("update decisions set answer=?, answered_by=? where id=?", (text, "phone", open_decision[0]["id"]))
+                        store.log(run, "decision_answered", id=open_decision[0]["id"], answer=text, by="phone")
+                        if self.on_reply:
+                            self.on_reply(run)
+                        continue
+                if stop:
+                    text = f"{text} (drop at {stop})"
+                store.add_inbox(run, last.get("recipient", "unknown"), last.get("role", "unknown"), text, False, f"tg:{update['update_id']}", {"offer": last.get("offer"), "photo": bool(msg.get("photo")), "retailer": stop or last.get("recipient")})
                 if self.on_reply:
                     self.on_reply(run)

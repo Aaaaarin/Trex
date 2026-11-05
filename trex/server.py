@@ -45,6 +45,7 @@ class Inject(BaseModel):
 @app.on_event("startup")
 def startup() -> None:
     orchestrator.resume_all()
+    orchestrator.ensure_poller()
 
 
 def _latest() -> str | None:
