@@ -395,3 +395,11 @@ def test_screen_follows_a_merged_truck_to_its_host(run):
     approve(run, "merge", truck="V3", detail="V1")
     tools.merge_truck("V3", "V1", "test")
     assert store.get_kv(run, "focus") == "V1"
+
+
+def test_two_failed_drops_on_one_route_are_both_kept(run):
+    tools = tools_for(run)
+    tools.log_miss("R12", "unknown", "delivery failed: R-473 shop closed", "retailer", [])
+    tools.log_miss("R12", "unknown", "delivery failed: R-595 shop closed", "retailer", [])
+    tools.log_miss("R12", "unknown", "delivery failed: R-595 shop closed", "retailer", [])
+    assert len(store.get_kv(run, "misses")) == 2

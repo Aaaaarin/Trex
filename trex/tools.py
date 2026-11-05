@@ -468,7 +468,7 @@ class Tools:
 
     def log_miss(self, route: str, product: str, stage: str, held_by_role: str, evidence_ids: list[str]) -> dict:
         misses = store.get_kv(self.run, "misses", [])
-        misses = [m for m in misses if not (m["route"] == route and m["product"] == product)]
+        misses = [m for m in misses if not (m["route"] == route and m["product"] == product and m["stage"] == stage)]
         misses.append({"route": route, "product": product, "stage": stage, "held_by": held_by_role, "evidence": evidence_ids})
         store.set_kv(self.run, "misses", misses)
         store.log(self.run, "miss_logged", route=route, product=product, stage=stage, held_by=held_by_role)
