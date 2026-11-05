@@ -28,6 +28,18 @@ def _h(*parts) -> int:
 GLOBAL = "_global"
 
 
+ON_SCREEN_SECONDS = 12
+
+
+def mark_on_screen(role: str, who: str) -> None:
+    """A phone screen for this person is open right now, so simulated stand-ins should leave them to it."""
+    store.set_kv(GLOBAL, f"on_screen:{role}:{who}", time.time())
+
+
+def on_screen(role: str, who: str) -> bool:
+    return time.time() - (store.get_kv(GLOBAL, f"on_screen:{role}:{who}") or 0) < ON_SCREEN_SECONDS
+
+
 def live_chat() -> int | None:
     return store.get_kv(GLOBAL, "telegram_chat") or (int(os.environ["TELEGRAM_CHAT_ID"]) if os.environ.get("TELEGRAM_CHAT_ID") else None)
 
@@ -150,9 +162,15 @@ class TelegramPoller(threading.Thread):
                 text = msg.get("text") or msg.get("caption") or ("[photo]" if msg.get("photo") else "")
                 if msg.get("voice"):
                     text = "[voice note] " + _transcribe(token, msg["voice"]["file_id"])
-                if not run or text.startswith("/start"):
+                if text.startswith("/start"):
                     continue
-                from . import fleet  # imported here because fleet sends through this module
+                from . import fleet, phone  # imported here because both send through this module
+
+                shop = text.strip().split(maxsplit=2)
+                if len(shop) == 3 and shop[0].lower() == "/shop" and phone.phone_shop_order(shop[1].upper(), shop[2], f"tg:{update['update_id']}"):
+                    continue
+                if not run:
+                    continue
 
                 if fleet.route_phone(run, text, bool(msg.get("photo")), update["update_id"]):
                     continue

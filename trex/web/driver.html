@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trex driver</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/phone.css">
+</head>
+<body>
+<main>
+  <div class="top"><h1>Driver <span id="who"></span></h1><span class="chip mu">Stand-in pay</span></div>
+  <div id="view"></div>
+  <p class="err" id="err" role="status"></p>
+</main>
+<script src="/static/phone.js"></script>
+<script>
+const { esc, rupees, post, poll } = Trex;
+const driver = (new URLSearchParams(location.search).get("id") || "D02").toUpperCase();
+document.getElementById("who").textContent = driver;
+const view = document.getElementById("view");
+const err = document.getElementById("err");
+let poller;
+
+function draw(d) {
+  if (d.job) {
+    const j = d.job;
+    const stage = !j.gate_in ? `Report at depot by ${esc(j.report_time)}` : !j.gate_out ? "At depot, loading" : "On the road";
+    const stops = (j.my_stops || []).map((s) => `<div class="row between rule"><span>${esc(s.name)}</span>${
+      s.state === "open" ? (j.gate_out ? `<span class="row"><button class="btn tiny ink" data-drop="${esc(s.id)}" data-ok="1">Delivered</button><button class="btn tiny" data-drop="${esc(s.id)}" data-ok="0">Shop closed</button></span>` : `<span class="chip mu">Waiting</span>`)
+      : s.state === "sent" ? `<span class="chip am">Recording</span>`
+      : `<span class="chip ${s.state === "delivered" ? "gr" : "or"}">${s.state === "delivered" ? "Delivered" : "Failed"}</span>`}</div>`).join("");
+    view.innerHTML = `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)} is yours</h2><span class="chip gr">${j.how === "accepted" ? "Accepted" : j.how === "default" ? "Default" : "Assigned"}</span></div>
+      <div class="big">${esc(rupees(j.pay))}</div>
+      <div class="small muted num">${esc(j.stops)} stops · ${esc(j.kg)} kg · ${esc(j.closed)} of ${esc(j.stops)} closed</div>
+      <div>${stage}</div>${stops}</div>`;
+    return;
+  }
+  if (d.offer) {
+    const o = d.offer;
+    view.innerHTML = `<div class="card"><div class="row between"><h2>New job: truck ${esc(o.truck)}</h2>${o.round > 1 ? `<span class="chip or">Pay raised</span>` : ""}</div>
+      <div class="big">${esc(rupees(o.pay))}</div>
+      <div class="small muted num">${esc(o.stops)} stops · ${esc(o.kg)} kg · ${esc(o.km)} km to depot</div>
+      ${d.answered ? `<p class="muted">Answer sent</p>` : `<div class="two"><button class="btn go" data-answer="1" data-truck="${esc(o.truck)}">Accept</button><button class="btn" data-answer="0" data-truck="${esc(o.truck)}">Reject</button></div>`}</div>`;
+    return;
+  }
+  view.innerHTML = `<div class="card"><p class="muted">${d.gone ? "That job has gone to another driver" : "No job yet"}</p></div>`;
+}
+
+document.addEventListener("click", async (event) => {
+  const el = event.target.closest("[data-answer], [data-drop]");
+  if (!el) return;
+  err.textContent = "";
+  el.disabled = true;
+  try {
+    if (el.dataset.answer) await post("/api/phone/driver", { driver, truck: el.dataset.truck, accept: el.dataset.answer === "1" });
+    else await post("/api/phone/drop", { driver, retailer: el.dataset.drop, delivered: el.dataset.ok === "1" });
+    poller.refresh();
+  } catch (e) { err.textContent = e.message; el.disabled = false; }
+});
+
+poller = poll(`/api/phone/driver/${driver}`, draw);
+</script>
+</body>
+</html>

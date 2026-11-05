@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trex order line</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/phone.css">
+<style>
+  .dial { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--gr-fg); color: #fff; cursor: pointer; display: grid; place-items: center; margin: 4px auto 0; }
+  .dial.end { background: var(--accent); }
+  .dial svg { width: 30px; height: 30px; }
+  .dial.end svg { transform: rotate(135deg); }
+  .state { text-align: center; }
+  .talk { display: flex; flex-direction: column; gap: 6px; max-height: 38vh; overflow-y: auto; }
+  .say { padding: 7px 10px; border-radius: 10px; max-width: 86%; font-size: 14px; }
+  .say.them { background: var(--mu-bg); align-self: flex-start; }
+  .say.me { background: var(--or-bg); color: var(--or-fg); align-self: flex-end; }
+  .say.done { background: var(--gr-bg); color: var(--gr-fg); align-self: stretch; max-width: 100%; font-size: 13px; }
+  .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .step { font-size: 11px; color: var(--muted); }
+  .step i { display: block; height: 4px; border-radius: 2px; background: var(--track); margin-bottom: 5px; }
+  .step.on i { background: var(--accent); }
+  .step.on { color: var(--text); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .typed { display: grid; grid-template-columns: 1fr 64px auto; gap: 6px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><h1>Order line</h1><span class="chip mu" id="line">Ready</span></div>
+  <select id="shop" aria-label="Calling as shop"></select>
+  <div class="card">
+    <div class="state small muted" id="state">Tap to call</div>
+    <button class="dial" id="dial" aria-label="Call"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg></button>
+    <div class="talk" id="talk" aria-live="polite"></div>
+  </div>
+  <div class="card">
+    <div class="steps" id="steps"></div>
+    <div class="small muted" id="orders"></div>
+  </div>
+  <details>
+    <summary>Type the order</summary>
+    <form class="typed" id="typed">
+      <select id="prod" aria-label="Product"></select>
+      <input id="qty" type="number" min="1" value="25" aria-label="Cases">
+      <button class="btn ink">Send</button>
+    </form>
+  </details>
+  <p class="err" id="err" role="status"></p>
+</main>
+<script src="/static/phone.js"></script>
+<script>
+const { esc, post, poll } = Trex;
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+let call = null;
+
+function bubble(cls, text) {
+  const el = document.createElement("div");
+  el.className = `say ${cls}`;
+  el.textContent = text;
+  $("talk").appendChild(el);
+  $("talk").scrollTop = $("talk").scrollHeight;
+}
+
+function setCalling(on, text) {
+  $("dial").classList.toggle("end", on);
+  $("dial").setAttribute("aria-label", on ? "End call" : "Call");
+  $("line").textContent = on ? "On call" : "Ready";
+  $("line").className = `chip ${on ? "gr" : "mu"}`;
+  $("state").textContent = text;
+}
+
+async function runTool(channel, event) {
+  let args = {};
+  try { args = JSON.parse(event.arguments || "{}"); } catch (e) {}
+  let output;
+  try {
+    output = await post("/api/phone/tool", { retailer: $("shop").value, name: event.name, args });
+    if (event.name === "place_order") bubble("done", output.truck ? `${output.status}: ${output.truck}, ${output.fill_percent ?? ""}%` : output.status);
+  } catch (e) {
+    output = { status: "failed", say: "Abhi system se jawab nahi aaya. Kuch pakka nahi hai." };
+  }
+  channel.send(JSON.stringify({ type: "conversation.item.create", item: { type: "function_call_output", call_id: event.call_id, output: JSON.stringify(output) } }));
+  channel.send(JSON.stringify({ type: "response.create" }));
+}
+
+function onEvent(channel, event) {
+  if (event.type === "conversation.item.input_audio_transcription.completed" && event.transcript.trim()) bubble("me", event.transcript.trim());
+  if (event.type === "response.output_audio_transcript.done" && event.transcript.trim()) bubble("them", event.transcript.trim());
+  if (event.type === "response.function_call_arguments.done") runTool(channel, event);
+  if (event.type === "error") $("err").textContent = event.error && event.error.message || "Call error";
+}
+
+async function start(stream) {
+  $("err").textContent = "";
+  $("talk").innerHTML = "";
+  setCalling(true, "Connecting");
+  const mic = stream || await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  const pc = new RTCPeerConnection();
+  const speaker = document.createElement("audio");
+  speaker.autoplay = true;
+  pc.ontrack = (e) => { speaker.srcObject = e.streams[0]; };
+  mic.getTracks().forEach((t) => pc.addTrack(t, mic));
+  const channel = pc.createDataChannel("oai-events");
+  call = { pc, mic, channel };
+  channel.onmessage = (m) => onEvent(channel, JSON.parse(m.data));
+  channel.onopen = () => {
+    setCalling(true, "Connected");
+    channel.send(JSON.stringify({ type: "response.create" }));
+  };
+  const { secret } = await post("/api/phone/session", { retailer: $("shop").value });
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  const answer = await fetch("https://api.openai.com/v1/realtime/calls", { method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/sdp" }, body: offer.sdp });
+  if (!answer.ok) throw new Error(`The call did not connect (${answer.status})`);
+  await pc.setRemoteDescription({ type: "answer", sdp: await answer.text() });
+}
+
+function hangUp(text) {
+  if (call) {
+    call.channel.close();
+    call.pc.close();
+    call.mic.getTracks().forEach((t) => t.stop());
+  }
+  call = null;
+  setCalling(false, text || "Call ended");
+}
+
+$("dial").addEventListener("click", async () => {
+  if (call) return hangUp();
+  try { await start(); }
+  catch (e) {
+    hangUp("Tap to call");
+    $("err").textContent = e.name === "NotAllowedError" ? "Allow the microphone to call" : e.message;
+  }
+});
+
+$("typed").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  $("err").textContent = "";
+  try {
+    const r = await post("/api/phone/tool", { retailer: $("shop").value, name: "place_order", args: { product: $("prod").value, quantity: Number($("qty").value), unit: "case" } });
+    bubble("done", r.say);
+  } catch (e) { $("err").textContent = e.message; }
+});
+
+const LABELS = [["order", "Order"], ["truck", "Truck"], ["driver", "Driver"], ["left", "Left depot"], ["delivered", "Delivered"]];
+function drawShop(d) {
+  $("steps").innerHTML = LABELS.map(([k, label]) => {
+    const v = d.steps[k];
+    const shown = k === "order" || !v ? label : k === "delivered" ? (v === "delivered" ? label : "Failed") : esc(v);
+    return `<div class="step ${v ? "on" : ""}"><i></i>${shown}</div>`;
+  }).join("");
+  $("orders").textContent = (d.orders || []).map((o) => `${o.pieces} pcs ${o.product}`).join(", ");
+}
+
+(async function init() {
+  const shops = await (await fetch("/api/phone/shops")).json();
+  $("shop").innerHTML = shops.map((s) => `<option value="${esc(s.id)}">${esc(s.name)} (${esc(s.id)})</option>`).join("");
+  const wanted = params.get("shop");
+  if (wanted) $("shop").value = wanted;
+  const products = await (await fetch("/api/phone/products")).json();
+  $("prod").innerHTML = products.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+  poll(() => `/api/phone/shop/${encodeURIComponent($("shop").value)}`, drawShop, 1500);
+})();
+
+window.trexCall = { start, hangUp, say(text) {
+  call.channel.send(JSON.stringify({ type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text }] } }));
+  call.channel.send(JSON.stringify({ type: "response.create" }));
+} };
+</script>
+</body>
+</html>

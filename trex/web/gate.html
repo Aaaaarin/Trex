@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trex dispatcher</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/phone.css">
+</head>
+<body>
+<main>
+  <div class="top"><h1>Dispatcher</h1><span class="chip mu" id="status"></span></div>
+  <div id="view" style="display:flex;flex-direction:column;gap:12px"></div>
+  <p class="err" id="err" role="status"></p>
+</main>
+<script src="/static/phone.js"></script>
+<script>
+const { esc, rupees, post, poll } = Trex;
+const view = document.getElementById("view");
+const err = document.getElementById("err");
+let poller;
+
+const REPLY = { yes: ["gr", "Yes"], no: ["mu", "No"], silent: ["mu", "No reply"], unclear: ["am", "Unclear"] };
+
+function decisionCard(d) {
+  return `<div class="card"><div class="row between"><h2>Needs approval</h2><span class="chip or">Waiting</span></div>
+    <div class="small">${esc(d.question)}</div>
+    <div class="row">${(d.options || []).map((o, i) => `<button class="btn tiny ${i ? "" : "ink"}" data-decide="${esc(d.id)}" data-answer="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`;
+}
+
+function jobCard(j, started) {
+  if (j.status === "open") {
+    const rows = j.drivers.map((d) => {
+      const reply = REPLY[d.reply];
+      return `<div class="row between rule"><span class="num"><b>${esc(d.id)}</b> <span class="small muted">${esc(d.km)} km · ${esc(d.max_kg)} kg</span></span>
+        <span class="row">${reply ? `<span class="chip ${reply[0]}">${reply[1]}</span>` : d.asked ? `<span class="chip am">Asked</span>` : ""}<button class="btn tiny" data-assign="${esc(d.id)}" data-truck="${esc(j.truck)}">Assign</button></span></div>`;
+    }).join("");
+    return `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)}</h2><span class="chip or">Finding driver, round ${esc(j.round)}</span></div>
+      <div class="small muted num">${esc(rupees(j.pay))} offered · ${esc(j.stops)} stops · ${esc(j.kg)} kg</div>${rows}</div>`;
+  }
+  if (j.status === "no_driver") return `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)}</h2><span class="chip or">No driver free</span></div></div>`;
+  const gateIn = j.gate.in, gateOut = j.gate.out;
+  const picks = (j.picks || []).map((p) => `<tr><td>${esc(p.product_name)} <span class="mono muted">${esc(p.batch)}</span></td><td class="r">${esc(p.pieces)}</td></tr>`).join("");
+  return `<div class="card"><div class="row between"><h2>Truck ${esc(j.truck)}: ${esc(j.driver)}</h2><span class="chip ${j.how === "default" ? "am" : "gr"}">${j.how === "accepted" ? "Accepted" : j.how === "default" ? "Default" : "Picked"}</span></div>
+    <div class="small muted num">Report ${esc(j.report_time)} · ${esc(rupees(j.pay))} · ${esc(j.stops)} stops · ${esc(j.kg)} kg</div>
+    <div class="row">
+      ${gateIn ? `<span class="chip ${gateIn.late_minutes ? "am" : "gr"}">In ${esc(gateIn.clock)}${gateIn.late_minutes ? `, ${esc(gateIn.late_minutes)} min late` : ""}</span>` : `<button class="btn ink" data-gate="in" data-truck="${esc(j.truck)}" ${started ? "" : "disabled"}>Log in</button><button class="btn" data-noshow="${esc(j.truck)}" ${started ? "" : "disabled"}>No-show</button>`}
+      ${gateOut ? `<span class="chip gr">Out ${esc(gateOut.clock)}</span>` : gateIn ? `<button class="btn ink" data-gate="out" data-truck="${esc(j.truck)}">Log out</button>` : ""}
+    </div>
+    <details><summary class="small muted">Hand over, ${esc((j.picks || []).length)} lines</summary><table>${picks}</table></details></div>`;
+}
+
+function draw(d) {
+  document.getElementById("status").textContent = d.status || "No run";
+  if (!d.run) { view.innerHTML = `<div class="card"><p class="muted">Waiting for the first order</p></div>`; return; }
+  const assigned = d.jobs.some((j) => j.status === "assigned");
+  const start = assigned && !d.started ? `<button class="btn go" data-start="1">Start delivery day</button>` : "";
+  const done = d.started ? `<div class="small muted num">${esc(d.drops)} drops closed · ${esc(d.misses)} misses</div>` : "";
+  const empty = !d.jobs.length && !(d.decisions || []).length ? `<div class="card"><p class="muted">Trex is deciding the truck</p></div>` : "";
+  view.innerHTML = (d.decisions || []).map(decisionCard).join("") + empty + d.jobs.map((j) => jobCard(j, d.started)).join("") + start + done;
+}
+
+document.addEventListener("click", async (event) => {
+  const el = event.target.closest("[data-assign], [data-gate], [data-noshow], [data-start], [data-decide]");
+  if (!el) return;
+  err.textContent = "";
+  el.disabled = true;
+  try {
+    if (el.dataset.assign) await post("/api/phone/assign", { truck: el.dataset.truck, driver: el.dataset.assign });
+    if (el.dataset.gate) await post("/api/fleet/gate", { truck: el.dataset.truck, event: el.dataset.gate });
+    if (el.dataset.noshow) await post(`/api/fleet/no_show/${encodeURIComponent(el.dataset.noshow)}`);
+    if (el.dataset.start) await post("/api/tomorrow");
+    if (el.dataset.decide) await post(`/api/decision/${encodeURIComponent(el.dataset.decide)}`, { answer: el.dataset.answer, by: "dispatcher" });
+    poller.refresh();
+  } catch (e) { err.textContent = e.message; el.disabled = false; }
+});
+
+poller = poll("/api/phone/dispatch", draw);
+</script>
+</body>
+</html>

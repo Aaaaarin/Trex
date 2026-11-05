@@ -44,6 +44,7 @@
     if (j.status === "open") return `<span class="chip or">Offering, round ${esc(j.round)}</span>`;
     if (j.status === "no_driver") return `<span class="chip or">No driver free</span>`;
     if (j.how === "default") return `<span class="chip am">${esc(j.driver)}, assigned by default</span>`;
+    if (j.how === "dispatcher") return `<span class="chip gr">${esc(j.driver)}, picked by dispatcher</span>`;
     return `<span class="chip gr">${esc(j.driver)} accepted</span>`;
   }
 
@@ -96,7 +97,7 @@
     const jobs = F.jobs || [];
     const answers = (F.desk && F.desk.answers) || [];
     return `<div data-key="v-fleet">
-      <div class="fl-head" style="justify-content:space-between"><div><h1>Drivers</h1><p class="sub">Drivers, pay and gate times are stand-ins. The invoices hold none of them.</p></div>
+      <div class="fl-head" style="justify-content:space-between"><div><h1>Drivers</h1><p class="sub">${esc(F.note || "Drivers, pay and gate times are stand-ins.")}</p></div>
         <button class="btn" data-fleet="phone" title="One driver and the dispatcher go to the team phone">${F.dispatcher_live ? "Dispatcher on phone" : "Use my phone"}</button></div>
       <h2 class="sec-title">Tomorrow's jobs</h2>
       ${jobs.length ? jobs.map(jobCard).join("") : `<p class="quiet">Jobs open once a load sheet is issued.</p>`}

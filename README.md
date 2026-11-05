@@ -16,7 +16,7 @@ After a load sheet is issued, code with no model turn offers the job to drivers 
 
 A retailer line answers status questions from saved records with no model turn. Messages go through keyword matching first, and the model classifies only what the keywords cannot place. Orders and discount requests go to the dispatch agent, and the shop is told nothing is promised yet. A shop that says it is busy gets one callback.
 
-A driver's message is required to close a drop, and the agent is instructed to log failed drops in a miss ledger. The web app shows trucks, decisions, evidence, drivers, retailers, batches and misses. A configured team phone can send replies, approvals, voice notes and a delivery photo through Telegram, which is the only live channel. Real calls and WhatsApp are not built. Other participants are simulated. This is a working prototype of coordination, not a deployed distributor integration.
+A driver's message is required to close a drop, and the agent is instructed to log failed drops in a miss ledger. The web app shows trucks, decisions, evidence, drivers, retailers, batches and misses. A configured team phone can send replies, approvals, voice notes and a delivery photo through Telegram, which is the only live channel. A shop can place an order on a voice call in the browser, through OpenAI Realtime. Calls to a phone number and WhatsApp are not built, because the Twilio account has no number and no balance. Other participants are simulated. This is a working prototype of coordination, not a deployed distributor integration.
 
 ## What is real, estimated or simulated
 
@@ -84,6 +84,8 @@ Open `http://127.0.0.1:8000`. Submit a request such as `V2 wali gaadi kal jayegi
 
 Optional live phone: configure `TELEGRAM_BOT_TOKEN` and use only the team's own bot/chat. `TELEGRAM_CHAT_ID` can specify the chat; the poller can also register a chat from an incoming message. Keep the bot private to the team. Voice notes are transcribed with `gpt-4o-transcribe`, which is a paid call. One phone can play several people with `/driver D03 haan`, `/gate V2 in` and `/shop R-120 gaadi kahan hai`. The current adapter is a demo, not a production identity or access-control system. With no live phone configured, replies and delivery-day events remain simulated. Do not contact real retailers or other outside parties during the event.
 
+Live phone demo: open `http://127.0.0.1:8000/demo` for all four screens, or use each on its own phone: `/call` (shop), `/driver?id=D02` (driver) and `/gate` (dispatcher). The first order starts the run and goes only to the truck carrying that shop. While a driver's screen is open, simulated drivers wait up to 120 seconds for that person to answer. While the dispatcher's screen is open, gate times wait for its taps. Other stops, drivers and shops stay simulated. The call runs on `gpt-realtime` (`TREX_VOICE_MODEL`), which is a paid API. For a phone's microphone the app needs HTTPS: set `TREX_PUBLIC_KEY` before exposing it through a tunnel, and visitors then need `?key=` on their first request.
+
 The terminal demonstration is also available:
 
 ```powershell
@@ -112,6 +114,7 @@ Run the full test suite with:
 - `trex/dispatch.py`: frozen plan versions, exact-scope approvals and the validator.
 - `trex/fleet.py`, `desk.py`, `fleet_api.py`: driver offers, default assignment, the dispatcher's gate log and the retailer line.
 - `trex/gate.py`, `store.py`: numeric claims matched to evidence, SQLite records, saved turns and event history.
+- `trex/phone.py`, `trex/web/call.html`, `driver.html`, `gate.html`, `demo.html`: the voice order line, the driver's and dispatcher's screens, and the page that shows them together.
 - `trex/channels.py`: simulated replies and a Telegram team-phone adapter. `trex/orders_api.py`: local orders with read-back after injected write errors.
 - `trex/upstream.py`: trace and vehicle matching on stand-ins. `trex/replay.py`: October replay scoring. `trex/server.py`, `state.py` and `trex/web/`: API and browser interface.
 

@@ -71,11 +71,19 @@ def _driver_role(run: str, driver: str) -> str:
 
 
 def _is_live(run: str, driver: str) -> bool:
-    return channels.is_live(run, _driver_role(run, driver), driver)
+    return bool(channels.is_live(run, _driver_role(run, driver), driver)) or channels.on_screen("driver", driver)
 
 
 def _dispatcher_live(run: str) -> bool:
-    return bool(channels.is_live(run, "dispatcher", DISPATCHER))
+    return bool(channels.is_live(run, "dispatcher", DISPATCHER)) or channels.on_screen("dispatcher", DISPATCHER)
+
+
+def _waiting_on_person(run: str, job: dict, now: float) -> bool:
+    """A real driver with the offer open gets to answer first, for a limited time, before the simulated ones do."""
+    if now - job["round_started"] >= CONFIG.get("live_wait_seconds", 120):
+        return False
+    answered = {r["driver"] for r in job["replies"] if r["round"] == job["round"]}
+    return any(d not in answered and _is_live(run, d) for d in job["asked"])
 
 
 def base_pay(truck: str) -> int:
@@ -164,7 +172,7 @@ def _sim_answer(run: str, driver: str, job: dict) -> str | None:
 
 
 def _sim_replies(run: str, job: dict, now: float) -> None:
-    if now - job["round_started"] < CONFIG["sim_reply_seconds"]:
+    if now - job["round_started"] < CONFIG["sim_reply_seconds"] or _waiting_on_person(run, job, now):
         return
     done = {(r["driver"], r["round"]) for r in job["replies"]}
     for driver in list(job["asked"]):
@@ -192,6 +200,8 @@ def _apply_reply(run: str, job: dict, driver: str, text: str, simulated: bool, n
 
 
 def _close_round(run: str, job: dict, now: float) -> None:
+    if _waiting_on_person(run, job, now):
+        return
     answered = {r["driver"] for r in job["replies"] if r["round"] == job["round"]}
     if now - job["round_started"] < CONFIG["round_seconds"] and not set(job["asked"]) <= answered:
         return
@@ -268,6 +278,18 @@ def driver_reply(run: str, driver: str, text: str, simulated: bool = False, truc
             return {"error": f"{driver} already has a job"}
         job = max(candidates, key=lambda j: j["round_started"])
         return _apply_reply(run, job, driver, text, simulated, now)
+
+
+def assign_by_hand(run: str, truck: str, driver: str, now: float | None = None) -> dict:
+    """The dispatcher picks the driver instead of waiting for offers."""
+    with _lock:
+        job = job_for(run, truck)
+        if not job or job["status"] != "open":
+            return {"error": f"{truck} has no open job"}
+        if driver not in _ranked(run, job):
+            return {"error": f"{driver} cannot take {truck}"}
+        _assign(run, job, driver, "dispatcher", now or time.time())
+        return {"status": job["status"], "driver": job["driver"]}
 
 
 def log_gate(run: str, truck: str, event: str, by: str = DISPATCHER, photo: bool = False, simulated: bool = False, clock: str | None = None, now: float | None = None) -> dict:

@@ -8,13 +8,26 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import fleet_api, orchestrator, orders_api, state, store
+from . import fleet_api, orchestrator, orders_api, phone, state, store
 from .config import DEMO
 
 WEB = Path(__file__).parent / "web"
 app = FastAPI(title="Trex")
 app.mount("/static", StaticFiles(directory=WEB), name="static")
 app.include_router(fleet_api.router)
+app.include_router(phone.router)
+app.include_router(phone.pages)
+
+
+@app.middleware("http")
+async def team_only(request, call_next):
+    refused = phone.guard(request)
+    if refused:
+        return refused
+    response = await call_next(request)
+    if phone.PUBLIC_KEY and request.query_params.get("key") == phone.PUBLIC_KEY:
+        response.set_cookie("trex_key", phone.PUBLIC_KEY, httponly=True, samesite="lax", secure=True)
+    return response
 
 
 class Request(BaseModel):
