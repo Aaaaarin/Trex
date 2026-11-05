@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trex</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23191917'/%3E%3Cpath d='M32 10v44M13 21l38 22M13 43l38-22' stroke='%23fff' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23191917'/%3E%3Cg transform='translate(32 32) scale(.72) translate(-32 -32)' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='rotate(0 32 32)'%3E%3Cpath d='M32 32V5M32 16 24.5 8.5M32 16 39.5 8.5'/%3E%3C/g%3E%3Cg transform='rotate(60 32 32)'%3E%3Cpath d='M32 32V5M32 16 24.5 8.5M32 16 39.5 8.5'/%3E%3C/g%3E%3Cg transform='rotate(120 32 32)'%3E%3Cpath d='M32 32V5M32 16 24.5 8.5M32 16 39.5 8.5'/%3E%3C/g%3E%3Cg transform='rotate(180 32 32)'%3E%3Cpath d='M32 32V5M32 16 24.5 8.5M32 16 39.5 8.5'/%3E%3C/g%3E%3Cg transform='rotate(240 32 32)'%3E%3Cpath d='M32 32V5M32 16 24.5 8.5M32 16 39.5 8.5'/%3E%3C/g%3E%3Cg transform='rotate(300 32 32)'%3E%3Cpath d='M32 32V5M32 16 24.5 8.5M32 16 39.5 8.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
 <script>
 try { if (localStorage.getItem("trex-theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (e) {}
@@ -507,6 +507,8 @@ html.topnav main { padding: 18px 20px; }
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script src="/static/fleet.js"></script>
+<script src="/static/map.js"></script>
+<script src="/static/analysis.js"></script>
 <script>
 "use strict";
 
@@ -1482,11 +1484,11 @@ function closeEvidence() {
 }
 
 /* ---------- Rendering ---------- */
-const VIEWS = { fleet: () => TrexFleet.view(), trucks: viewTrucks, truck: viewTruck, sell: viewSell, offers: viewSell, retailers: viewRetailers, batches: viewBatches, misses: viewMisses };
+const VIEWS = { map: () => TrexMap.view(), analysis: () => TrexAnalysis.view(), fleet: () => TrexFleet.view(), trucks: viewTrucks, truck: viewTruck, sell: viewSell, offers: viewSell, retailers: viewRetailers, batches: viewBatches, misses: viewMisses };
 function renderChrome() {
   const family = { truck: "trucks", sell: "trucks", offers: "trucks" }[view.name] || view.name;
   const pending = pendingDecisions().length;
-  const items = [["trucks", "Trucks", pending], ["fleet", "Drivers"], ["retailers", "Retailers"], ["batches", "Batches"], ["misses", "Misses"]];
+  const items = [["trucks", "Trucks", pending], ["fleet", "Drivers"], ["map", "Map"], ["analysis", "Analysis"], ["retailers", "Retailers"], ["batches", "Batches"], ["misses", "Misses"]];
   patch($("#nav"), items.map(([id, label, n]) => `<a href="#/${id}" class="${family === id ? "on" : ""}" ${family === id ? 'aria-current="page"' : ""}><span>${label}</span>${n ? `<span class="count">${n}</span>` : ""}</a>`).join(""));
   const labels = { working: "Working", waiting: "Waiting", needs_person: "Needs a person", error: "Error", closed: "Closed" };
   let line;
@@ -1567,6 +1569,8 @@ function parseHash() {
     case "batches": return { name: "batches" };
     case "misses": return { name: "misses" };
     case "fleet": return { name: "fleet" };
+    case "map": return { name: "map" };
+    case "analysis": return { name: "analysis" };
     default: return { name: "trucks" };
   }
 }
