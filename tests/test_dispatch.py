@@ -403,3 +403,38 @@ def test_two_failed_drops_on_one_route_are_both_kept(run):
     tools.log_miss("R12", "unknown", "delivery failed: R-595 shop closed", "retailer", [])
     tools.log_miss("R12", "unknown", "delivery failed: R-595 shop closed", "retailer", [])
     assert len(store.get_kv(run, "misses")) == 2
+
+
+def _shop_with_no_truck(tools):
+    served = {ln.route for ln in tools.night().lines}
+    d = tools.ledger.lines()
+    routes = d.groupby("retailer_id")["route_id"].agg(set)
+    return next(r for r, s in routes.items() if not s & served)
+
+
+def test_shop_with_no_truck_is_asked_about_and_nothing_is_promised(run):
+    tools = tools_for(run)
+    shop = _shop_with_no_truck(tools)
+    result = tools.add_request(shop, "P001", 12, tools._standin_evidence("t", "t", {}))
+    assert result["needs_decision"] and result["scope"]["kind"] == "add_stop" and result["trucks_with_room"]
+    assert result["evidence_id"] and store.get_kv(run, "extras", []) == []
+
+
+def test_approved_stop_rides_on_the_named_truck_only(run):
+    tools = tools_for(run)
+    shop = _shop_with_no_truck(tools)
+    evidence = tools._standin_evidence("t", "t", {})
+    approve(run, "add_stop", truck="V3", retailer=shop, product="P001", pieces=12)
+    assert tools.add_request(shop, "P001", 24, evidence)["needs_decision"], "approval covers the exact quantity only"
+    result = tools.add_request(shop, "P001", 12, evidence)
+    assert result["truck"] == "V3"
+    assert shop in {ln.retailer for ln in tools.night().lines if ln.truck == "V3"}
+
+
+def test_approved_stop_cannot_ride_on_a_held_truck(run):
+    tools = tools_for(run)
+    shop = _shop_with_no_truck(tools)
+    approve(run, "hold", truck="V3")
+    tools.hold_truck("V3", "test")
+    approve(run, "add_stop", truck="V3", retailer=shop, product="P001", pieces=12)
+    assert "already held" in tools.add_request(shop, "P001", 12, tools._standin_evidence("t", "t", {}))["error"]

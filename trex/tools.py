@@ -47,7 +47,7 @@ TOOLS = [
     _tool("accept_offer", "Record a retailer's yes. evidence_id must be that retailer's reply. Pieces cannot exceed the offer. If the plan is committed it becomes a proposed revision.", {"retailer": _S, "product": _S, "pieces": _I, "evidence_id": _S}),
     _tool("release_offer", "Release reserved stock after a no or an unclear reply. evidence_id is the reply.", {"retailer": _S, "product": _S, "reason": _S, "evidence_id": _S}),
     _tool("send_message", "Send a short message to a person. role is retailer, salesman, driver or approver.", {"role": _S, "recipient": _S, "text": _S, "claims": _CLAIMS}),
-    _tool("request_decision", "Ask a person one exact question. kind is under_target, take_promised_stock, hold, merge, discount or clarify. Fill truck, retailer, product and pieces exactly as the action needs them, using empty text or 0 where they do not apply. For under_target, pieces is the kg from preview_plan. For merge, detail is the host truck. Then end your turn.", {"kind": _S, "truck": _S, "retailer": _S, "product": _S, "pieces": _I, "detail": _S, "question": _S, "options": {"type": "array", "items": _S}, "claims": _CLAIMS}),
+    _tool("request_decision", "Ask a person one exact question. kind is under_target, take_promised_stock, add_stop, hold, merge, discount or clarify. Fill truck, retailer, product and pieces exactly as the action needs them, using empty text or 0 where they do not apply. For under_target, pieces is the kg from preview_plan. For merge, detail is the host truck. Then end your turn.", {"kind": _S, "truck": _S, "retailer": _S, "product": _S, "pieces": _I, "detail": _S, "question": _S, "options": {"type": "array", "items": _S}, "claims": _CLAIMS}),
     _tool("preview_plan", "See exactly what would ship for this truck after batch checks, without freezing anything. Use this figure, not truck_board, before asking to go under target.", {"truck": _S}),
     _tool("freeze_plan", "Build and validate this truck's dispatch plan and freeze it as a numbered version. option is go or sell_to_fill. The validator refuses anything over stock or capacity, without valid batches, or under target with no exact approval.", {"truck": _S, "option": _S, "reason": _S}),
     _tool("hold_truck", "Hold a truck for a later day and tell its retailers. Needs an approved hold decision for this truck. Nothing else dispatches it afterwards.", {"truck": _S, "reason": _S}),
@@ -197,10 +197,14 @@ class Tools:
         store.set_kv(self.run, f"offers:{truck}", known)
         return data
 
-    def _add_extra(self, retailer: str, product: str, pieces: int, source: str, evidence_id: str, route: str | None = None, needs_approval: bool = False) -> dict:
+    def _own_routes(self, retailer: str) -> list[str]:
+        d = self.ledger.lines()
+        return d[d["retailer_id"] == retailer]["route_id"].value_counts().index.tolist()
+
+    def _add_extra(self, retailer: str, product: str, pieces: int, source: str, evidence_id: str, route: str | None = None, needs_approval: bool = False, truck: str | None = None) -> dict:
         r = self._retailer(retailer)
         route = route or self._serving_route(retailer)
-        truck = self._truck_for_route(route)
+        truck = truck or self._truck_for_route(route)
         if dispatch.truck_status(self.run, truck) == "held":
             return {"error": f"{truck} is held, so nothing can be added to it"}
         plan = dispatch.current_plan(self.run, truck)
@@ -224,6 +228,15 @@ class Tools:
         store.log(self.run, "load_changed", truck=truck, fill=me["fill"], kg=me["kg"], retailer=retailer, product=product, pieces=int(pieces), source=source)
         return {"truck": truck, "fill": me["fill"], "kg": me["kg"], "evidence_id": self._standin_evidence(f"load:{truck}:{dispatch.basis_of(self.run)}", f"Load of {truck}", me)}
 
+    def _no_truck(self, retailer: str, product: str, pieces: int, routes: list[str]) -> dict:
+        """Nothing runs on this shop's route tomorrow. A person picks a truck, since distance between routes is not on record."""
+        room = [{"truck": t["truck"], "fill": t["fill"], "room_kg": t["capacity_kg"] - t["kg"]} for t in self.night().truck_summary() if not dispatch.truck_status(self.run, t["truck"]) and t["capacity_kg"] > t["kg"]]
+        room.sort(key=lambda t: t["fill"])
+        data = {"retailer": retailer, "product": product, "requested_pieces": int(pieces), "shop_routes": routes, "trucks_with_room": room, "standin": True}
+        eid = self._standin_evidence(f"no_truck:{retailer}:{product}:{pieces}", f"No truck on {retailer}'s route tomorrow", data)
+        store.log(self.run, "no_truck_on_route", retailer=retailer, product=product, routes=routes)
+        return {"needs_decision": True, "reason": "No truck runs on this shop's route tomorrow, so nothing is promised yet. Distance between routes is not on record, so say so. Use request_decision with this scope and truck set to the truck you suggest, then end your turn. Call add_request again with the same quantity after approval.", "scope": {"kind": "add_stop", "retailer": retailer, "product": product, "pieces": int(pieces)}, "evidence_id": eid, **data}
+
     def add_request(self, retailer: str, product: str, pieces: int, evidence_id: str) -> dict:
         if store.get_evidence(evidence_id) is None:
             return {"error": "That evidence does not exist"}
@@ -231,13 +244,23 @@ class Tools:
         free = night.free_stock().get(product)
         if free is None:
             return {"error": f"{product} has no stock record, so it cannot be promised"}
+        routes = self._own_routes(retailer)
+        carrier = None
+        if not {ln.route for ln in night.lines} & set(routes):
+            approval = dispatch.find_approval(self.run, "add_stop", retailer=retailer, product=product, pieces=int(pieces))
+            if not approval:
+                return self._no_truck(retailer, product, pieces, routes)
+            carrier = json.loads(approval["scope"])["truck"]
+            problem = self._not_open(carrier)
+            if problem:
+                return {"error": f"The approved truck cannot take this stop. {problem}"}
         if pieces > free:
             data = {"product": product, "retailer": retailer, "unpromised_stock_pieces": free, "requested_pieces": int(pieces), "standin": True}
             eid = self._standin_evidence(f"scarcity:{retailer}:{product}:{pieces}", f"Stock against promises for {product}", data)
             if dispatch.find_approval(self.run, "take_promised_stock", retailer=retailer, product=product, pieces=int(pieces)):
-                return self._add_extra(retailer, product, pieces, "request", evidence_id, needs_approval=True)
+                return self._add_extra(retailer, product, pieces, "request", evidence_id, routes[0] if carrier else None, True, carrier)
             return {"needs_decision": True, "reason": "This takes stock already promised to other retailers. Use request_decision with exactly this scope, then end your turn. Call add_request again with the same quantity after approval.", "scope": {"kind": "take_promised_stock", "retailer": retailer, "product": product, "pieces": int(pieces)}, "evidence_id": eid, **data}
-        return self._add_extra(retailer, product, pieces, "request", evidence_id)
+        return self._add_extra(retailer, product, pieces, "request", evidence_id, routes[0] if carrier else None, False, carrier)
 
     def send_offer(self, retailer: str, product: str, pieces: int, discount_inr_per_piece: int, text: str, claims: list[dict]) -> dict:
         gate.check(self.run, text, claims)
