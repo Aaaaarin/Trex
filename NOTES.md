@@ -5,7 +5,6 @@ Kept through the night: what we weighed, what worked, what did not.
 Labels used below:
 
 - **[run log]**: seen in one live run on the build of that moment. The output was not saved and it has not been rerun on current code.
-- **[to confirm]**: a replay figure not yet checked against the rerun.
 - **[stand-in]**: rests on invented or placeholder inputs, not measurements.
 
 ## Approaches considered
@@ -37,8 +36,8 @@ Labels used below:
 
 ## What did not work
 
-- Stock ranges show no predictive skill. On 144 frequently bought pairs, predicting a rebuy within 7 days scored 46.5%, the same as assuming everyone buys weekly **[to confirm]**, because the ranges flagged every pair as low and never predicted a non-buyer. They are honest about uncertainty, but they do not rank at all yet.
-- Sell to fill has a low ceiling in the replay. 13 of 80 truck days reached the stand-in 80% target as billed. At most 40 could with offers, assuming every retailer says yes, so 40 is an upper limit **[to confirm]**.
+- Stock ranges show no predictive skill. On 144 frequently bought pairs, predicting a rebuy within 7 days scored 46.5%, the same as assuming everyone buys weekly, because the ranges flagged every pair as low and never predicted a non-buyer. They are honest about uncertainty, but they do not rank at all yet.
+- Sell to fill has a low ceiling in the replay. 13 of 80 truck days reached the stand-in 80% target as billed. At most 42 could with offers, assuming every retailer says yes, so 42 is an upper limit.
 - One offer could swallow a truck: a single shop was offered 648 kg **[run log]**. The billing history supports the size, with retailer and product pairs averaging as much as 648 kg and 1,155 kg per bill as of 2026-10-15. Offers are now capped at a stand-in 90 kg per shop.
 
 - The first version messaged 18 shops to gain 299 kg **[run log]**. Offers now use whole cases, send up to two ageing-stock offers first, then larger regular buyers.

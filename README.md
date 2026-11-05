@@ -126,10 +126,10 @@ Decision history comes from [NOTES.md](NOTES.md).
 | Filling trucks as the goal | Replaced: a fuller truck can be worse. The objective is now meeting commitments at an acceptable total cost, and selling to fill is one priced action. |
 | Nightly dispatch with priced options | Chosen, but retailer replies remain unproven. |
 
-Failures recorded during the build. Replay figures stay marked to confirm until they are checked against the rerun:
+Failures recorded during the build. Replay figures come from `data/replay_results.json`:
 
-- Stock ranges show no predictive skill. On 144 frequently bought pairs, predicting a rebuy within seven days scored **46.5%, the same as assuming everyone buys weekly** (replay figures, to confirm), because the ranges flagged every pair as low and never predicted a non-buyer.
-- Sell-to-fill has a low ceiling in the replay. **13 of 80 truck days reached the stand-in 80% target as billed. At most 40 could with offers, assuming every retailer says yes** (replay figures, to confirm). That is an upper limit, not achieved uplift.
+- Stock ranges show no predictive skill. On 144 frequently bought pairs, predicting a rebuy within seven days scored **46.5%, the same as assuming everyone buys weekly**, because the ranges flagged every pair as low and never predicted a non-buyer.
+- Sell-to-fill has a low ceiling in the replay. **13 of 80 truck days reached the stand-in 80% target as billed. At most 42 could with offers, assuming every retailer says yes.** That is an upper limit, not achieved uplift.
 - Retailer and product pairs in the billing history average as much as **648 kg and 1,155 kg per bill** as of 2026-10-15, enough for one uncapped offer to take most of a small truck. Offer sizing is now capped at a stand-in 90 kg per shop.
 - The first offer version messaged too many shops for too little load. Offers now use whole cases, send up to two ageing-stock offers first, then larger regular buyers, and stop at a stand-in limit of 10 questions per truck.
 
