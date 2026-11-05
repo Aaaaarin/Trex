@@ -1,0 +1,10 @@
+anthropic
+fastapi
+httpx
+ortools
+pandas
+pytest
+python-dotenv
+python-multipart
+pyxlsb
+uvicorn[standard]
