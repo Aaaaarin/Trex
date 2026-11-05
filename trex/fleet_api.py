@@ -32,9 +32,13 @@ class FleetLive(BaseModel):
     dispatcher: bool = False
 
 
-def _target(run: str | None) -> str:
+def _latest() -> str | None:
     found = store.rows("select id from runs order by created desc limit 1")
-    target = run or (found[0]["id"] if found else None)
+    return found[0]["id"] if found else None
+
+
+def _target(run: str | None) -> str:
+    target = run or _latest()
     if not target:
         raise HTTPException(400, "No run yet")
     return target
@@ -42,7 +46,8 @@ def _target(run: str | None) -> str:
 
 @router.get("/fleet")
 def get_fleet(run: str | None = None) -> dict:
-    target = _target(run)
+    """The screen polls this before any run exists, so an empty answer is a normal one."""
+    target = run or _latest()
     return jsonable_encoder({"run": target, **fleet.snapshot(target), "desk": desk.snapshot(target)})
 
 

@@ -2,8 +2,10 @@
 import json
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
-from trex import desk, dispatch, fleet, orchestrator, store
+from trex import desk, dispatch, fleet, fleet_api, orchestrator, store
 from trex.tools import Tools
 
 EVENING, DAY = "2026-10-15", "2026-10-16"
@@ -218,6 +220,16 @@ def test_desk_uses_the_model_only_when_keywords_fail_and_survives_its_failure(ru
     assert desk.classify(run, "kahan hai", Broken)["by"] == "keywords"
     assert desk.classify(run, "bhaiya aaj kuch hua", Fake)["intent"] == "status"
     assert desk.classify(run, "bhaiya aaj kuch hua", Broken) == {"intent": "unclear", "by": "model failed"}
+
+
+def test_fleet_screen_gets_an_empty_answer_before_any_run_exists(monkeypatch):
+    monkeypatch.setattr(fleet_api, "_latest", lambda: None)
+    app = FastAPI()
+    app.include_router(fleet_api.router)
+    response = TestClient(app).get("/api/fleet")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["run"] is None and body["jobs"] == [] and body["drivers"] == [] and body["desk"]["answers"] == []
 
 
 def test_phone_commands_are_explicit_and_ordinary_replies_are_left_alone(run):
