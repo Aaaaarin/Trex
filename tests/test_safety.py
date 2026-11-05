@@ -7,7 +7,6 @@ from types import SimpleNamespace
 
 import pytest
 
-os.environ["TREX_DB"] = str(Path(tempfile.mkdtemp()) / "test.sqlite")
 
 from trex import channels, gate, orders_api, store, upstream
 from trex.agent import Agent
