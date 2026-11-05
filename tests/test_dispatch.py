@@ -438,3 +438,43 @@ def test_approved_stop_cannot_ride_on_a_held_truck(run):
     tools.hold_truck("V3", "test")
     approve(run, "add_stop", truck="V3", retailer=shop, product="P001", pieces=12)
     assert "already held" in tools.add_request(shop, "P001", 12, tools._standin_evidence("t", "t", {}))["error"]
+
+
+def _fake_search(calls, status="ok"):
+    def search(lane, vehicle_type, limit=5):
+        calls.append((lane, vehicle_type))
+        rows = [{"name": "Test Carriers", "website": None, "location": "Kanpur", "size": None, "why_matched": "test", "source_url": None}] if status == "ok" else []
+        return {"lane": lane, "vehicle_type": vehicle_type, "transporters": rows, "count": len(rows), "status": status, "note": "test"}
+    return search
+
+
+def test_transporter_search_sends_only_the_test_lane_and_runs_once(run, monkeypatch):
+    from trex import crustdata
+    from trex.config import standin
+
+    calls = []
+    monkeypatch.setattr(crustdata, "find_transporters", _fake_search(calls))
+    tools = tools_for(run)
+    first = tools.find_transporters("P006")
+    second = tools.find_transporters("P006")
+    assert calls == [(standin("transporter_lane"), "refrigerated")]
+    assert first["contacted"] == 0 and second["transporters"] == first["transporters"]
+    assert store.get_evidence(first["evidence_id"])
+
+
+def test_failed_transporter_search_is_not_remembered(run, monkeypatch):
+    from trex import crustdata
+
+    calls = []
+    monkeypatch.setattr(crustdata, "find_transporters", _fake_search(calls, "error"))
+    tools = tools_for(run)
+    assert tools.find_transporters("P006")["status"] == "error"
+    assert store.get_kv(run, "transporters", {}) == {}
+
+
+def test_no_transporter_search_once_a_truck_is_matched(run, monkeypatch):
+    from trex import crustdata, upstream
+
+    monkeypatch.setattr(upstream, "trace", lambda product: {"vehicle_matched": True, "po_id": "PO-1"})
+    monkeypatch.setattr(crustdata, "find_transporters", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no search")))
+    assert "error" in tools_for(run).find_transporters("P006")

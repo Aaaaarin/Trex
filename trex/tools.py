@@ -8,7 +8,7 @@ import time
 
 import pandas as pd
 
-from . import channels, dispatch, gate, orders_api, store, upstream
+from . import channels, crustdata, dispatch, gate, orders_api, store, upstream
 from .belief import estimate
 from .config import standin
 from .ledger import Ledger, merge_aliases
@@ -39,6 +39,7 @@ TOOLS = [
     _tool("billing_gap", "Real invoice history for a product: last bill, selling days with no bills, earlier buyers, and whether the other distributor kept selling.", {"product": _S}),
     _tool("trace_upstream", "Follow a shortage from distributor to branch, transit, open purchase order, vehicle and plant. Stand-in data, and say so.", {"product": _S}),
     _tool("match_vehicle", "Find a reported vehicle of the right type for the open purchase order on a product. Stand-in data.", {"product": _S}),
+    _tool("find_transporters", "Real transporter companies a person could call when a product's open purchase order has no truck. A list only: it contacts nobody. Uses a test lane. Matched by head office, so service on the lane is not confirmed.", {"product": _S}),
     _tool("retailer_stock", "Estimated days of stock left for one retailer and product, as a range with its evidence. Never treat it as a fact.", {"retailer": _S, "product": _S}),
     _tool("price_options", "Price go, sell to fill, merge and hold for one truck in rupees, from stand-in costs.", {"truck": _S}),
     _tool("plan_offers", "Who to ask to fill this truck. Each shop is asked once, offers fit unpromised stock, and only as many are asked as needed.", {"truck": _S}),
@@ -146,6 +147,23 @@ class Tools:
         v = upstream.vehicles_for(product)
         data = {"vehicles": v, "po_about_to_expire": upstream.po_expiring(product), "standin": True}
         data["evidence_id"] = self._standin_evidence(f"vehicles:{product}", f"Vehicles for {product}, stand-in", data)
+        return data
+
+    def find_transporters(self, product: str) -> dict:
+        t = upstream.trace(product)
+        if t["vehicle_matched"]:
+            return {"error": f"{t['po_id']} already has a truck, so no search is needed"}
+        kind = "refrigerated" if "refrigerated" in upstream.allowed_vehicle_types(product) else "dry"
+        saved = store.get_kv(self.run, "transporters", {})
+        result = saved.get(product)
+        if not result:
+            result = crustdata.find_transporters(standin("transporter_lane"), kind)
+            if result["status"] != "error":
+                saved[product] = result
+                store.set_kv(self.run, "transporters", saved)
+            store.log(self.run, "transporters_searched", product=product, lane=result["lane"], vehicle_type=kind, status=result["status"], count=result["count"])
+        data = {**result, "lane_is_a_test_input": True, "contacted": 0}
+        data["evidence_id"] = store.add_evidence(self.run, "crustdata", f"transporters:{product}", f"Crustdata transporters for a {kind} truck", data)
         return data
 
     def retailer_stock(self, retailer: str, product: str) -> dict:

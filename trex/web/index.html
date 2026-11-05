@@ -287,6 +287,7 @@ button.evitem:hover .evsum { text-decoration: underline; text-underline-offset: 
 .up-head { font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
 .up-head b { font-weight: 600; color: var(--or-fg); }
 .upbar { display: grid; grid-template-columns: 96px minmax(0, 1fr) 60px; gap: 10px; align-items: center; padding: 3px 0; font-size: 13px; }
+.up-found { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
 .chain { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .ch { position: relative; min-width: 0; padding: 25px 8px 8px; border-radius: 8px; font-size: 13px; overflow-wrap: break-word; }
 .ch-l { display: block; color: var(--muted); line-height: 1.25; }
@@ -1148,6 +1149,18 @@ function upstreamPanel() {
       <div>${bars.map((r) => `<div class="upbar"><span class="muted">${esc(r[0])}</span><div class="tr"><i style="width:${(num(r[1]) / max * 100).toFixed(2)}%;background:${r[2]}"></i></div><span class="num">${esc(group(r[1], 1))} days</span></div>`).join("")}</div>
     </div>
     <ol class="chain">${stages.map((g, i) => `<li class="${stageClass(i)}"${i === stop ? ` aria-current="step"` : ""}><i></i><span class="ch-l">${esc(g[0])}</span><span class="ch-v num">${esc(g[1])}</span>${g[2] ? `<span class="ch-s">${esc(g[2])}</span>` : ""}${i === stop ? `<span class="chip ch-tag">Stuck here</span>` : ""}</li>`).join("")}</ol>
+  ${transportersBlock()}
+  </div>`;
+}
+function transportersBlock() {
+  const found = (S.transporters || {})[BUTTER_ID] || Object.values(S.transporters || {})[0];
+  if (!found) return "";
+  const site = (w) => (/^https?:\/\//i.test(w || "") ? `<a href="${esc(w)}" target="_blank" rel="noopener noreferrer">Website</a>` : "");
+  const rows = (found.transporters || []).map((c) => `<div class="kv"><span>${esc(c.name || "Name not returned")}<span class="muted small"> ${esc(c.location || "")}</span></span><span class="small">${site(c.website)}</span></div>`).join("");
+  return `<div class="up-found">
+    <div class="up-title"><h2>Transporters to call</h2>${chip("Crustdata", "gr")}</div>
+    <p class="muted small">${esc(found.lane)}, a test lane. Matched by head office, service not confirmed. Nobody has been contacted.</p>
+    ${rows || `<p class="muted small">${esc(found.note)}</p>`}
   </div>`;
 }
 function viewMisses() {

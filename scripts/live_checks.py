@@ -19,6 +19,7 @@ NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 CASES = [
     {"name": "hard request, failed write", "port": 8021, "text": "Route 4 ki gaadi kal jayegi? load kam hai. Hotel R-120 ko Butter 30x500 CP ke 200 packet chahiye kal subah", "fault": "500_after_write", "focus": "V2"},
     {"name": "truck that cannot reach target", "port": 8022, "text": "Route 13 ki gaadi kal jayegi kya? Bahut khaali lag rahi hai, kya karein", "fault": None, "focus": "V3"},
+    {"name": "transporters", "port": 8025, "text": "Butter ki PO ke liye koi truck nahi lag raha. Kaha atka hai aur kis transporter ko phone karein? Trucks ka decision abhi mat lo.", "fault": None, "focus": "V2"},
     {"name": "merge", "port": 8023, "text": "Route 13 ki gaadi kal jayegi kya? Bahut khaali lag rahi hai, kya karein", "fault": None, "focus": "V3", "prefer": "merge"},
     {"name": "hold", "port": 8024, "text": "Route 13 ki gaadi workshop mein hai, kal nahi ja sakti aur koi doosri gaadi uske stops nahi le sakti. Hold karwa do", "fault": None, "focus": "V3", "prefer": "hold"},
 ]
@@ -67,7 +68,7 @@ def run_case(case: dict, out: list) -> None:
         lines.append(f"status {s['run']['status']} board {[(t['truck'], t['fill'], (t.get('decision') or {}).get('option')) for t in s['board']['trucks']]}")
         lines.append(f"plan {s.get('plan') and {k: s['plan'][k] for k in ('version', 'status', 'option', 'fill')}} orders {s['orders_saved']} drops {len(s['drops'])} misses {len(s['misses'])}")
         lines.append("tools " + " ".join(tool_names)[:900])
-        for k in ("plan_rejected", "plan_frozen", "gate_blocked", "order_read_back_found", "promise_blocked", "revision_proposed", "stock_reserved", "stock_released", "truck_held", "truck_merged", "tool_error", "agent_error"):
+        for k in ("plan_rejected", "plan_frozen", "gate_blocked", "order_read_back_found", "promise_blocked", "revision_proposed", "stock_reserved", "stock_released", "truck_held", "truck_merged", "transporters_searched", "no_truck_on_route", "tool_error", "agent_error"):
             if kinds.get(k):
                 lines.append(f"  {k}: {kinds[k]}")
         for row in con.execute("select data from events where kind in ('plan_rejected', 'tool_error', 'agent_error') order by seq limit 5").fetchall():

@@ -56,6 +56,11 @@ def trace(product: str) -> dict:
     return {**c, "stopped_at": stage, "held_by": owner}
 
 
+def allowed_vehicle_types(product: str) -> list[str]:
+    d = _data()
+    return d["branch_position"].get(product, d["branch_position"]["default"])["allowed_vehicle_types"]
+
+
 def vehicles_for(product: str) -> list[dict]:
     d = _data()
     row = d["branch_position"].get(product, d["branch_position"]["default"])

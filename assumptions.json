@@ -99,6 +99,10 @@
     "offer_reply_window_seconds": {
       "value": 90,
       "note": "How long Trex waits for offer replies tonight before deciding without them"
+    },
+    "transporter_lane": {
+      "value": "Kanpur to Lucknow",
+      "note": "Public test lane for transporter lookups. The operator's real lanes are masked and are never sent out"
     }
   }
 }

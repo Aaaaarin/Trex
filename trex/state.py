@@ -148,6 +148,7 @@ def snapshot(run: str | None) -> dict:
         {
             "run": row[0],
             "focus": focus,
+            "transporters": store.get_kv(run, "transporters", {}),
             "options": options,
             "offers": _offer_rows(run, focus),
             "load_events": _events(run, ("load_changed",)),
