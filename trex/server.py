@@ -89,6 +89,8 @@ def post_fault(body: Fault, run: str | None = None) -> dict:
 @app.post("/api/live")
 def post_live(body: Live, run: str | None = None) -> dict:
     target = run or _latest()
+    if not target:
+        raise HTTPException(400, "No run yet")
     live = store.get_kv(target, "live", {})
     live["recipients"] = [body.retailer] if body.retailer else []
     live["roles"] = body.roles
@@ -121,7 +123,10 @@ def get_evidence(evidence_id: str) -> dict:
 
 @app.get("/api/retailer/{retailer}")
 def get_retailer(retailer: str, run: str | None = None) -> dict:
-    return jsonable_encoder(state.retailer_view(run or _latest(), retailer))
+    try:
+        return jsonable_encoder(state.retailer_view(run or _latest(), retailer))
+    except ValueError as err:
+        raise HTTPException(404, str(err))
 
 
 @app.post("/api/reset")

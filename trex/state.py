@@ -93,9 +93,13 @@ def board(run: str | None) -> dict:
 
 def batches(run: str | None) -> list[dict]:
     night = _night(run)
-    hero = DEMO["hero_truck"]
-    risk = night.expiry_risk(hero)["batches"]
-    return risk[:12]
+    seen, out = set(), []
+    for truck in sorted({ln.truck for ln in night.lines}):
+        for b in night.expiry_risk(truck)["batches"]:
+            if b["batch"] not in seen:
+                seen.add(b["batch"])
+                out.append(b)
+    return sorted(out, key=lambda b: -b["value_inr"])[:12]
 
 
 def retailer_view(run: str | None, retailer: str) -> dict:
@@ -134,6 +138,8 @@ def snapshot(run: str | None) -> dict:
             "offers": _offer_rows(run, focus),
             "load_events": _events(run, ("load_changed",)),
             "timeline": [e for e in _events(run) if e["kind"] not in ("tool_result", "llm_usage", "gate_passed", "status")][-60:],
+            "gate_blocks": _events(run, ("gate_blocked",), 2000),
+            "start_fill": store.get_kv(run, f"start_fill:{focus}"),
             "messages": messages[-80:],
             "decisions": decisions,
             "sheet": night.load_sheet(focus) if store.get_kv(run, f"sheet:{focus}") else None,

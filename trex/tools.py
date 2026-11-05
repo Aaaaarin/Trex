@@ -136,6 +136,9 @@ class Tools:
         p = self.night().price_options(truck)
         p["evidence_id"] = self._standin_evidence(f"options:{truck}:{len(self._extras())}", f"Priced options for {truck}", p)
         store.set_kv(self.run, f"options:{truck}", p)
+        store.set_kv(self.run, "focus", truck)
+        if store.get_kv(self.run, f"start_fill:{truck}") is None:
+            store.set_kv(self.run, f"start_fill:{truck}", p["fill"])
         return p
 
     def plan_offers(self, truck: str) -> dict:

@@ -126,7 +126,13 @@ class Night:
         pair = pair[pair["product_id"].map(lambda p: self.stock.get(p, 0) > 0)]
         pair["ageing"] = pair["product_id"].isin(risk)
         pair["score"] = pair["kg_per_bill"].clip(upper=MAX_OFFER_KG) * (pair["bills"] >= 2).map({True: 1.0, False: 0.4}) * pair["ageing"].map({True: 1.5, False: 1.0})
-        pair = pair.sort_values(["score"], ascending=False)
+        # Up to two ageing offers go first, if the stock still has days left to sell.
+        sellable = {p for p, b in risk.items() if b["days_left"] >= 1}
+        pair["ageing_first"] = pair["product_id"].isin(sellable)
+        top_ageing = pair[pair["ageing_first"]].sort_values("score", ascending=False).drop_duplicates("retailer_id").head(2).index
+        pair["rank"] = 0
+        pair.loc[top_ageing, "rank"] = 1
+        pair = pair.sort_values(["rank", "score"], ascending=False)
         offers, seen = [], set()
         max_off = standin("max_discount_inr_per_pack")
         for r in pair.itertuples():
