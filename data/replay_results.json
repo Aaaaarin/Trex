@@ -81,13 +81,13 @@
  "trucks": {
   "truck_days": 80,
   "at_target_as_billed": 13,
-  "could_reach_target_with_offers": 40,
+  "could_reach_target_with_offers": 42,
   "rows": [
    {
     "date": "2026-10-05",
     "truck": "V1",
     "fill": 0.366,
-    "reachable_fill": 0.456
+    "reachable_fill": 0.453
    },
    {
     "date": "2026-10-05",
@@ -99,31 +99,31 @@
     "date": "2026-10-05",
     "truck": "V3",
     "fill": 0.395,
-    "reachable_fill": 0.395
+    "reachable_fill": 0.399
    },
    {
     "date": "2026-10-06",
     "truck": "V1",
     "fill": 0.681,
-    "reachable_fill": 0.939
+    "reachable_fill": 0.964
    },
    {
     "date": "2026-10-06",
     "truck": "V2",
     "fill": 0.879,
-    "reachable_fill": 0.932
+    "reachable_fill": 0.927
    },
    {
     "date": "2026-10-07",
     "truck": "V1",
     "fill": 0.736,
-    "reachable_fill": 0.961
+    "reachable_fill": 0.954
    },
    {
     "date": "2026-10-07",
     "truck": "V2",
     "fill": 0.036,
-    "reachable_fill": 0.043
+    "reachable_fill": 0.04
    },
    {
     "date": "2026-10-07",
@@ -141,13 +141,13 @@
     "date": "2026-10-08",
     "truck": "V1",
     "fill": 0.505,
-    "reachable_fill": 0.666
+    "reachable_fill": 0.662
    },
    {
     "date": "2026-10-08",
     "truck": "V2",
     "fill": 0.331,
-    "reachable_fill": 0.366
+    "reachable_fill": 0.382
    },
    {
     "date": "2026-10-08",
@@ -165,7 +165,7 @@
     "date": "2026-10-09",
     "truck": "V1",
     "fill": 0.523,
-    "reachable_fill": 0.759
+    "reachable_fill": 0.798
    },
    {
     "date": "2026-10-09",
@@ -177,25 +177,25 @@
     "date": "2026-10-09",
     "truck": "V3",
     "fill": 0.685,
-    "reachable_fill": 0.747
+    "reachable_fill": 0.751
    },
    {
     "date": "2026-10-10",
     "truck": "V1",
     "fill": 0.583,
-    "reachable_fill": 0.846
+    "reachable_fill": 0.838
    },
    {
     "date": "2026-10-10",
     "truck": "V2",
     "fill": 0.242,
-    "reachable_fill": 0.388
+    "reachable_fill": 0.354
    },
    {
     "date": "2026-10-10",
     "truck": "V3",
     "fill": 0.299,
-    "reachable_fill": 0.543
+    "reachable_fill": 0.538
    },
    {
     "date": "2026-10-10",
@@ -207,7 +207,7 @@
     "date": "2026-10-11",
     "truck": "V1",
     "fill": 0.011,
-    "reachable_fill": 0.128
+    "reachable_fill": 0.209
    },
    {
     "date": "2026-10-11",
@@ -219,13 +219,13 @@
     "date": "2026-10-12",
     "truck": "V1",
     "fill": 0.663,
-    "reachable_fill": 0.876
+    "reachable_fill": 0.898
    },
    {
     "date": "2026-10-12",
     "truck": "V2",
     "fill": 0.734,
-    "reachable_fill": 0.916
+    "reachable_fill": 0.9
    },
    {
     "date": "2026-10-12",
@@ -237,25 +237,25 @@
     "date": "2026-10-12",
     "truck": "V4",
     "fill": 0.031,
-    "reachable_fill": 0.619
+    "reachable_fill": 0.599
    },
    {
     "date": "2026-10-13",
     "truck": "V1",
     "fill": 0.055,
-    "reachable_fill": 0.282
+    "reachable_fill": 0.317
    },
    {
     "date": "2026-10-13",
     "truck": "V2",
     "fill": 0.733,
-    "reachable_fill": 0.868
+    "reachable_fill": 0.865
    },
    {
     "date": "2026-10-13",
     "truck": "V3",
     "fill": 0.404,
-    "reachable_fill": 0.758
+    "reachable_fill": 0.753
    },
    {
     "date": "2026-10-13",
@@ -273,25 +273,25 @@
     "date": "2026-10-14",
     "truck": "V2",
     "fill": 0.561,
-    "reachable_fill": 0.843
+    "reachable_fill": 0.855
    },
    {
     "date": "2026-10-15",
     "truck": "V1",
     "fill": 0.489,
-    "reachable_fill": 0.681
+    "reachable_fill": 0.718
    },
    {
     "date": "2026-10-15",
     "truck": "V2",
     "fill": 0.277,
-    "reachable_fill": 0.348
+    "reachable_fill": 0.371
    },
    {
     "date": "2026-10-15",
     "truck": "V3",
     "fill": 0.505,
-    "reachable_fill": 0.677
+    "reachable_fill": 0.827
    },
    {
     "date": "2026-10-15",
@@ -303,43 +303,43 @@
     "date": "2026-10-16",
     "truck": "V1",
     "fill": 0.571,
-    "reachable_fill": 0.824
+    "reachable_fill": 0.827
    },
    {
     "date": "2026-10-16",
     "truck": "V2",
     "fill": 0.709,
-    "reachable_fill": 0.864
+    "reachable_fill": 0.846
    },
    {
     "date": "2026-10-16",
     "truck": "V3",
     "fill": 0.388,
-    "reachable_fill": 0.53
+    "reachable_fill": 0.543
    },
    {
     "date": "2026-10-17",
     "truck": "V1",
     "fill": 0.617,
-    "reachable_fill": 0.799
+    "reachable_fill": 0.845
    },
    {
     "date": "2026-10-17",
     "truck": "V3",
     "fill": 0.286,
-    "reachable_fill": 0.416
+    "reachable_fill": 0.417
    },
    {
     "date": "2026-10-18",
     "truck": "V1",
     "fill": 0.008,
-    "reachable_fill": 0.12
+    "reachable_fill": 0.179
    },
    {
     "date": "2026-10-18",
     "truck": "V2",
     "fill": 0.46,
-    "reachable_fill": 0.619
+    "reachable_fill": 0.625
    },
    {
     "date": "2026-10-18",
@@ -351,61 +351,61 @@
     "date": "2026-10-19",
     "truck": "V1",
     "fill": 0.01,
-    "reachable_fill": 0.179
+    "reachable_fill": 0.217
    },
    {
     "date": "2026-10-19",
     "truck": "V4",
     "fill": 0.26,
-    "reachable_fill": 0.864
+    "reachable_fill": 1.0
    },
    {
     "date": "2026-10-22",
     "truck": "V1",
     "fill": 0.674,
-    "reachable_fill": 0.909
+    "reachable_fill": 0.892
    },
    {
     "date": "2026-10-22",
     "truck": "V2",
     "fill": 0.64,
-    "reachable_fill": 0.886
+    "reachable_fill": 0.969
    },
    {
     "date": "2026-10-22",
     "truck": "V3",
     "fill": 0.699,
-    "reachable_fill": 0.872
+    "reachable_fill": 0.938
    },
    {
     "date": "2026-10-22",
     "truck": "V4",
     "fill": 0.057,
-    "reachable_fill": 0.111
+    "reachable_fill": 0.115
    },
    {
     "date": "2026-10-22",
     "truck": "V5",
     "fill": 0.071,
-    "reachable_fill": 0.147
+    "reachable_fill": 0.162
    },
    {
     "date": "2026-10-23",
     "truck": "V1",
     "fill": 0.013,
-    "reachable_fill": 0.216
+    "reachable_fill": 0.254
    },
    {
     "date": "2026-10-23",
     "truck": "V2",
     "fill": 0.824,
-    "reachable_fill": 0.948
+    "reachable_fill": 0.992
    },
    {
     "date": "2026-10-23",
     "truck": "V4",
     "fill": 0.126,
-    "reachable_fill": 0.881
+    "reachable_fill": 1.0
    },
    {
     "date": "2026-10-24",
@@ -417,61 +417,61 @@
     "date": "2026-10-24",
     "truck": "V2",
     "fill": 0.204,
-    "reachable_fill": 0.367
+    "reachable_fill": 0.373
    },
    {
     "date": "2026-10-24",
     "truck": "V3",
     "fill": 0.007,
-    "reachable_fill": 0.162
+    "reachable_fill": 0.165
    },
    {
     "date": "2026-10-24",
     "truck": "V5",
     "fill": 0.363,
-    "reachable_fill": 0.584
+    "reachable_fill": 0.592
    },
    {
     "date": "2026-10-25",
     "truck": "V1",
     "fill": 0.522,
-    "reachable_fill": 0.756
+    "reachable_fill": 0.776
    },
    {
     "date": "2026-10-25",
     "truck": "V2",
     "fill": 0.31,
-    "reachable_fill": 0.472
+    "reachable_fill": 0.471
    },
    {
     "date": "2026-10-25",
     "truck": "V4",
     "fill": 0.226,
-    "reachable_fill": 0.983
+    "reachable_fill": 1.0
    },
    {
     "date": "2026-10-26",
     "truck": "V1",
     "fill": 0.62,
-    "reachable_fill": 0.709
+    "reachable_fill": 0.722
    },
    {
     "date": "2026-10-26",
     "truck": "V2",
     "fill": 0.616,
-    "reachable_fill": 0.682
+    "reachable_fill": 0.718
    },
    {
     "date": "2026-10-26",
     "truck": "V3",
     "fill": 0.448,
-    "reachable_fill": 0.713
+    "reachable_fill": 0.751
    },
    {
     "date": "2026-10-26",
     "truck": "V4",
     "fill": 0.317,
-    "reachable_fill": 0.839
+    "reachable_fill": 0.974
    },
    {
     "date": "2026-10-26",
@@ -483,19 +483,19 @@
     "date": "2026-10-27",
     "truck": "V1",
     "fill": 0.759,
-    "reachable_fill": 0.807
+    "reachable_fill": 0.907
    },
    {
     "date": "2026-10-27",
     "truck": "V2",
     "fill": 0.665,
-    "reachable_fill": 0.846
+    "reachable_fill": 0.862
    },
    {
     "date": "2026-10-27",
     "truck": "V3",
     "fill": 0.106,
-    "reachable_fill": 0.401
+    "reachable_fill": 0.446
    },
    {
     "date": "2026-10-27",
@@ -525,13 +525,13 @@
     "date": "2026-10-28",
     "truck": "V3",
     "fill": 0.429,
-    "reachable_fill": 0.509
+    "reachable_fill": 0.565
    },
    {
     "date": "2026-10-29",
     "truck": "V1",
     "fill": 0.091,
-    "reachable_fill": 0.21
+    "reachable_fill": 0.29
    },
    {
     "date": "2026-10-30",
@@ -543,7 +543,7 @@
     "date": "2026-10-30",
     "truck": "V2",
     "fill": 0.451,
-    "reachable_fill": 0.64
+    "reachable_fill": 0.677
    },
    {
     "date": "2026-10-30",
@@ -555,7 +555,7 @@
     "date": "2026-10-31",
     "truck": "V1",
     "fill": 0.232,
-    "reachable_fill": 0.539
+    "reachable_fill": 0.433
    },
    {
     "date": "2026-10-31",
