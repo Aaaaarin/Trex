@@ -26,6 +26,8 @@ Kept through the night: what we weighed, what worked, what did not.
 - The dispatch validator caught a bug in our own code on its first live run: batch codes repeat across products in the real records, and we had assumed they were unique. It refused the plan, so nothing bad was sent.
 - An unreachable truck now goes straight to a priced choice. On Route 13 it stopped selling, asked one scoped question, and went out under target because holding cost more on stand-in numbers.
 
+- Driver offers run as code, so accept and reject cost no model turn. In a three-truck simulation on stand-in pay and willingness, V1 was accepted at start pay, V2 after one pay rise, and V3 went to a driver by default. Pay stops at a cap, or sooner if going would no longer beat holding.
+
 ## What did not work
 
 - Stock ranges are not yet better than a simple habit. On 144 frequently bought pairs, predicting a rebuy within 7 days scored 46.5%, the same as assuming everyone buys weekly, because the ranges flagged every pair as low. They are honest about uncertainty, but they do not rank well yet.
@@ -40,6 +42,7 @@ Kept through the night: what we weighed, what worked, what did not.
 - With an unreachable target, it messaged 24 shops. The limit of 10 existed but was not enforced.
 - Accepted offers were dropped later when no batch suited that retailer. Offers now use only stock that retailer can take.
 - Tests with fake data missed all of these. Only live runs found them.
+- Pressing delivery day soon after issuing cut the driver rounds short. On the first live run, V2 went to a driver by default at round 2 before anyone could answer the higher pay. Delivery day now plays out the remaining rounds first.
 
 ## Hardest case
 

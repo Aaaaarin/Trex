@@ -117,7 +117,7 @@ def test_gate_log_is_safe_when_repeated_or_out_of_order(run):
     assert fleet.log_gate(run, "V3", "out", clock="07:00")["status"] == "logged"
     assert "in" not in fleet.job_for(run, "V3")["gate"], "An in that never came stays not established"
     late = fleet._clock(fleet._minutes(report) + 30)
-    assert fleet.log_gate(run, "V3", "in", clock=late)["gate"]["in"]["late_minutes"] == 25
+    assert fleet.log_gate(run, "V3", "in", clock=late)["gate"]["in"]["late_minutes"] == 30
     assert fleet.log_gate(run, "V3", "in", clock=report)["status"] == "already_logged"
     assert fleet.may_roll(run, "V3")
 
@@ -155,6 +155,19 @@ def test_delivery_day_keeps_the_driver_label_that_proof_of_delivery_needs(run):
     row = next(r for r in store.unhandled_inbox(run) if retailer in r["text"])
     eid = store.add_evidence(run, "message", f"inbox:{row['seq']}", "drop", {"sender": row["sender"], "role": row["role"], "text": row["text"], "retailer": retailer})
     assert tools.record_drop("V3", retailer, "delivered", eid)["closed"] == retailer
+
+
+def test_delivery_day_finishes_the_offer_rounds_before_any_default(run):
+    issue(run)
+    fleet.CONFIG["route_reluctance"]["V3"] = 1.1  # needs one pay rise, then someone says yes
+    try:
+        fleet.tick(run, 1000, roll=False)
+        orchestrator.run_tomorrow(run)
+    finally:
+        fleet.CONFIG["route_reluctance"]["V3"] = 1.6
+    job = fleet.job_for(run, "V3")
+    assert job["status"] == "assigned" and job["how"] == "accepted" and job["round"] >= 2
+    assert job["pay"] > job["base_pay"]
 
 
 def test_desk_answers_status_from_records_at_every_stage(run):

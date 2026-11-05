@@ -285,7 +285,7 @@ def log_gate(run: str, truck: str, event: str, by: str = DISPATCHER, photo: bool
         entry = {"clock": at, "by": by, "photo": photo, "simulated": simulated}
         if event == "in":
             late = _minutes(at) - _minutes(job["report_time"])
-            entry["late_minutes"] = max(0, late - CONFIG["on_time_grace_minutes"])
+            entry["late_minutes"] = late if late > CONFIG["on_time_grace_minutes"] else 0
             entry["on_time"] = entry["late_minutes"] == 0
         job["gate"][event] = entry
         _save(run, job)
@@ -304,7 +304,8 @@ def _sim_gates(run: str, job: dict) -> None:
     if _dispatcher_live(run):
         return
     report = _minutes(job["report_time"])
-    arrive = report + (_h(run, job["truck"], "gate") % 26) - 10
+    draw = _h(run, job["truck"], "gate")
+    arrive = report + (18 if draw % 5 == 0 else -(draw % 12))  # most arrive early, about one in five runs late
     log_gate(run, job["truck"], "in", simulated=True, clock=_clock(arrive))
     log_gate(run, job["truck"], "out", simulated=True, clock=_clock(arrive + CONFIG["gate_turnaround_minutes"]))
 
@@ -317,8 +318,13 @@ def morning(run: str, now: float | None = None) -> None:
         if not store.get_kv(run, "morning_started"):
             store.set_kv(run, "morning_started", now)
         for job in jobs(run):
-            if job["status"] == "open":
-                _default_assign(run, job, now)
+            # Play out the remaining rounds now, so a driver who would have accepted still can.
+            for _ in range(CONFIG["max_rounds"] + 1):
+                if job["status"] != "open":
+                    break
+                _sim_replies(run, job, job["round_started"] + CONFIG["sim_reply_seconds"])
+                if job["status"] == "open":
+                    _close_round(run, job, job["round_started"] + CONFIG["round_seconds"])
         for job in jobs(run):
             if job["status"] == "assigned" and "out" not in job["gate"]:
                 if _dispatcher_live(run):
