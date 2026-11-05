@@ -11,6 +11,8 @@ from .tools import Tools
 from .upstream import cover, trace
 
 BUTTER = "P006"
+# Model plumbing, left off the timeline. Everything else stays, so the request and approvals outlive delivery.
+NOT_ON_TIMELINE = ("tool_result", "llm_usage", "gate_passed", "status")
 # Approximate list prices for the model in use. Unconfirmed, so cost is shown as an estimate.
 PRICE_PER_MTOK = {"input": 5.0, "output": 30.0, "cache_read": 0.50}
 _night_cache: dict[str, tuple[str, Night]] = {}
@@ -30,7 +32,7 @@ def _night(run: str | None) -> Night:
     return _night_cache[key][1]
 
 
-def _events(run: str, kinds: tuple[str, ...] | None = None, limit: int = 400) -> list[dict]:
+def _events(run: str, kinds: tuple[str, ...] | None = None, limit: int = 20000) -> list[dict]:
     rows = store.rows("select seq, ts, kind, data from events where run=? order by seq desc limit ?", (run, limit))
     rows.reverse()
     out = []
@@ -83,6 +85,37 @@ def _plan_view(run: str, truck: str) -> dict | None:
     return {"truck": truck, "version": plan["version"], "status": plan["status"], "hash": plan["hash"], "option": plan["option"], "fill": plan["fill"], "kg": plan["kg"], "unplaced": plan["unplaced"], "versions": versions, "revisions": store.get_kv(run, f"revisions:{truck}", [])}
 
 
+def _drops(run: str) -> dict:
+    """Drops as saved, plus whether the driver's message was simulated. Only a real phone photo counts as a photo."""
+    messages = {r["id"]: json.loads(r["data"]) for r in store.rows("select id, data from evidence where run=? and kind='message'", (run,))}
+    out = {}
+    for retailer, d in store.get_kv(run, "drops", {}).items():
+        message = messages.get(d.get("evidence"))
+        simulated = message is None or bool(message.get("simulated"))
+        out[retailer] = {**d, "simulated": simulated, "photo": bool(d.get("photo")) and not simulated}
+    return out
+
+
+def _merged(run: str, decided: dict) -> list[dict]:
+    """Trucks that left the board by merging, so the screens can say where they went."""
+    merges = store.get_kv(run, "merges", {})
+    if not merges:
+        return []
+    alone = {t["truck"]: t for t in _night(None).truck_summary()}
+    told = {e["truck"]: e.get("stops") for e in _events(run, ("truck_merged",))}
+    return [
+        {
+            "truck": truck,
+            "into": into,
+            "approved": bool(dispatch.find_approval(run, "merge", truck=truck, detail=into)),
+            "routes": alone.get(truck, {}).get("routes", []),
+            "stops": told.get(truck),
+            "reason": decided.get(truck, {}).get("reason"),
+        }
+        for truck, into in merges.items()
+    ]
+
+
 def butter_chart() -> dict:
     """The real gap: every bill for the biggest butter pack in the month, masked. Not limited by as-of."""
     from .ledger import _all_lines
@@ -98,11 +131,23 @@ def board(run: str | None) -> dict:
     night = _night(run)
     trucks = night.truck_summary()
     decided = store.get_kv(run, "decided", {}) if run else {}
+    plans = dispatch.all_current_plans(run) if run else {}
+    drops = _drops(run) if run else {}
     target = standin("fill_target")
     for t in trucks:
         t["decision"] = decided.get(t["truck"])
+        plan = plans.get(t["truck"])
+        if plan:  # Once a truck has a plan, its load is the plan's, the same figure the approval named.
+            t.update(kg=plan["kg"], fill=plan["fill"], stops=len({ln["retailer"] for ln in plan["lines"]}))
         t["at_target"] = t["fill"] >= target
-    return {"trucks": trucks, "target": target, "plan_date": DEMO["plan_date"], "records_to": DEMO["plan_evening"], "distributor": DEMO["distributor"]}
+        closed = [d for d in drops.values() if d.get("truck") == t["truck"]]
+        t["results"] = {
+            "delivered": sum(1 for d in closed if d["status"] == "delivered"),
+            "failed": sum(1 for d in closed if d["status"] == "failed"),
+            "simulated": sum(1 for d in closed if d["simulated"]),
+        }
+    merged = _merged(run, decided) if run else []
+    return {"trucks": trucks, "merged": merged, "target": target, "plan_date": DEMO["plan_date"], "records_to": DEMO["plan_evening"], "distributor": DEMO["distributor"]}
 
 
 def batches(run: str | None) -> list[dict]:
@@ -153,15 +198,18 @@ def snapshot(run: str | None) -> dict:
             "options": options,
             "offers": _offer_rows(run, focus),
             "load_events": _events(run, ("load_changed",)),
-            "timeline": [e for e in _events(run) if e["kind"] not in ("tool_result", "llm_usage", "gate_passed", "status")][-60:],
+            "timeline": [e for e in _events(run) if e["kind"] not in NOT_ON_TIMELINE],
             "gate_blocks": _events(run, ("gate_blocked",), 2000),
             "start_fill": store.get_kv(run, f"start_fill:{focus}"),
             "messages": messages[-80:],
             "decisions": decisions,
             "sheet": store.get_kv(run, f"sheet:{focus}"),
             "plan": _plan_view(run, focus),
+            "plans": {t: _plan_view(run, t) for t in dispatch.all_current_plans(run)},
+            "sheets": {r["key"].split(":", 1)[1]: json.loads(r["value"]) for r in store.rows("select key, value from kv where run=? and key like 'sheet:%'", (run,))},
+            "options_by_truck": {r["key"].split(":", 1)[1]: json.loads(r["value"]) for r in store.rows("select key, value from kv where run=? and key like 'options:%'", (run,))},
             "safeguards": _events(run, ("plan_rejected", "promise_blocked", "revision_proposed", "stock_reserved", "stock_released", "reservation_expired", "truck_held", "truck_merged"), 2000)[-30:],
-            "drops": store.get_kv(run, "drops", {}),
+            "drops": _drops(run),
             "misses": store.get_kv(run, "misses", []),
             "reports": _events(run, ("report",)),
             "batches": batches(run),

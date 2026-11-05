@@ -134,13 +134,21 @@ main { overflow-y: auto; padding: 26px 32px 24px; min-width: 0; }
 
 .board { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; margin-top: 14px; align-items: start; }
 .thead { font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--rule); padding: 0 4px 8px; }
-.trow, .thead.tgrid { display: grid; grid-template-columns: 124px minmax(160px, 1fr) 66px 84px 92px 118px; gap: 14px; align-items: center; }
+.trow, .thead.tgrid { display: grid; grid-template-columns: 124px minmax(110px, 1fr) 66px 84px 92px 128px; gap: 14px; align-items: center; }
 .trow { padding: 15px 4px; border-bottom: 1px solid var(--rule); }
 .trow:hover { background: var(--hover); }
 .trow .name { font-weight: 500; font-size: 15px; }
 .trow .pct { font-size: 23px; letter-spacing: -0.01em; }
 .trow .right { text-align: right; min-width: 0; }
 .trow .right .chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.result { margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.merged-row { display: block; padding: 12px 4px; border-bottom: 1px solid var(--rule); }
+.merged-row:hover { background: var(--hover); }
+.merged-row span { display: block; }
+.merged-note { margin-top: 12px; }
+.miss-lead { margin-top: 14px; font-size: 17px; line-height: 1.35; overflow-wrap: anywhere; }
+.miss-lead b { font-weight: 600; color: var(--or-fg); }
+.thead.tgrid span:nth-child(2) { grid-column: 2 / -1; }
 .two-line span { display: block; }
 .two-line span + span { font-size: 12px; color: var(--muted); }
 
@@ -367,10 +375,55 @@ button.evitem:hover .evsum { text-decoration: underline; text-underline-offset: 
   .side { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--rule); }
   .brand { padding: 0; }
   .side-low { flex-direction: row; align-items: center; margin: 0 0 0 auto; gap: 8px; }
-  .side-low .status, .side-low [data-act="timeline"] { display: none; }
+  .side-low { min-width: 0; gap: 2px; }
+  .side-low .status { padding: 0 6px 0 0; white-space: nowrap; }
+  .side-low .sidebtn { width: auto; gap: 5px; padding: 5px 7px; font-size: 13px; }
+  .side-row { flex: none; }
+  .demo { left: 12px; right: 12px; top: 100%; bottom: auto; width: auto; margin-top: 4px; }
   .nav { order: 3; flex: 1 0 100%; flex-direction: row; margin-top: 0; overflow-x: auto; scrollbar-width: none; }
   .nav a { width: auto; flex: none; gap: 6px; }
+  .content { height: auto; }
   main { padding: 16px; }
+  .stats { flex-wrap: wrap; gap: 12px 28px; }
+  .stat b { font-size: 22px; }
+  .thead.tgrid { display: block; }
+  .thead.tgrid span:first-child { display: none; }
+  .trow { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 12px 4px; }
+  .trow > .two-line:first-child { grid-area: 1 / 1; min-width: 0; }
+  .trow > .pct { grid-area: 1 / 2; text-align: right; }
+  .trow > .bar { grid-area: 2 / 1 / 2 / -1; }
+  .trow > :nth-child(4) { grid-area: 3 / 1; }
+  .trow > :nth-child(4) span { display: inline; font-size: 13px; color: inherit; }
+  .trow > :nth-child(4) span + span::before { content: " · "; }
+  .trow > :nth-child(5) { grid-area: 3 / 2; text-align: right; }
+  .trow > :nth-child(5) span { display: inline; font-size: 13px; color: inherit; }
+  .trow > :nth-child(5) span + span::before { content: " "; }
+  .trow > .right { grid-area: 4 / 1 / 4 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; text-align: left; }
+  .trow > .right:empty { display: none; }
+  .trow > .right .result { margin-top: 0; }
+  .stop { grid-template-columns: 24px minmax(0, 1fr); }
+  .stop > :nth-child(3) { grid-column: 2; }
+  .otable thead { display: none; }
+  .otable, .otable tbody, .otable tr, .otable td { display: block; }
+  .otable tr { padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .otable td, .otable .r, .otable td:first-child { border: 0; padding: 2px 0; text-align: left; white-space: normal; }
+  .otable td[data-l]::before { content: attr(data-l) ": "; color: var(--muted); }
+  .batch-head { flex-wrap: wrap; gap: 8px; }
+  .loud, .loud + p { text-align: left; }
+  .bt { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .bt > .dbars { grid-area: 2 / 1 / 2 / -1; }
+  .bt.h { display: block; }
+  .bt.h span:not(:nth-child(2)) { display: none; }
+  .legend { flex-wrap: wrap; gap: 6px 16px; }
+  .ret-grid { margin-top: 14px; }
+  .head { flex-wrap: wrap; gap: 8px; }
+  .brow { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .brow > .range { grid-area: 2 / 1 / 2 / -1; }
+  .brow > .two-line { grid-area: 3 / 1 / 3 / -1; }
+  .brow.h { display: block; }
+  .brow.h span:not(:nth-child(2)) { display: none; }
+  .axis { grid-template-columns: minmax(0, 1fr); }
+  .axis > span { display: none; }
   .tk-head, .opts { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .chart-card { overflow: hidden; }
   .chart-top { flex-wrap: wrap; gap: 6px; }
@@ -485,11 +538,14 @@ const plural = (n, one, many) => `${group(n)} ${n === 1 ? one : (many || one + "
 const TYPES = { kirana: "Kirana", horeca: "HoReCa", modern: "Store", outlet: "Outlet", wholesale: "Wholesale" };
 const typeName = (t) => TYPES[t] || (t ? String(t).charAt(0).toUpperCase() + String(t).slice(1) : "");
 const retailerLabel = (id, type) => (type ? typeName(type) + " " : "") + id;
-const routes = (list) => {
-  const r = list || [];
+/* Routes named first in `lead` are never the ones hidden behind "+11". */
+const routes = (list, lead) => {
+  const first = (lead || []).filter((x) => (list || []).includes(x));
+  const r = [...first, ...(list || []).filter((x) => !first.includes(x))];
   const shown = r.slice(0, 2).join(", ");
   return (r.length === 1 ? "Route " : "Routes ") + shown + (r.length > 2 ? ` +${r.length - 2}` : "");
 };
+const allRoutes = (list) => ((list || []).length === 1 ? "Route " : "Routes ") + (list || []).join(", ");
 
 const EV_RE = /([A-Za-z0-9_.\-]+:E\d+)/g;
 const evShort = (id) => String(id).slice(String(id).lastIndexOf(":") + 1);
@@ -602,6 +658,17 @@ function statusChip(t) {
   if (S.run) return chip("Undecided", "mu");
   return "";
 }
+const mergedInto = (truck) => ((S.board.merged || []).filter((m) => m.into === truck));
+const mergedLine = (m) => `${m.truck} merged into ${m.into}${m.approved ? ", approved" : ""}`;
+const mergedDetail = (m) => [(m.routes || []).length ? allRoutes(m.routes) : "", num(m.stops) ? `${plural(num(m.stops), "stop")} now on ${m.into}` : ""].filter(Boolean).join(", ");
+/* Counts come straight from the drivers' closed stops. Nothing shows until a stop closes. */
+function resultLine(t) {
+  const r = t.results || {};
+  const closed = num(r.delivered) + num(r.failed);
+  if (!closed) return "";
+  const open = num(t.stops) - closed;
+  return `<div class="result num">${esc(group(r.delivered))} delivered, ${esc(group(r.failed))} failed${open > 0 ? `, ${esc(group(open))} open` : ""}${num(r.simulated) ? ` <span class="sim">Simulated</span>` : ""}</div>`;
+}
 function typedAnswer(d) {
   return ((d.scope || {}).kind || "") === "clarify" ? `<div class="line need-type"><input id="ans-${esc(d.id)}" placeholder="Or type the answer" autocomplete="off"><button class="btn" data-act="answerTyped" data-id="${esc(d.id)}">Send</button></div>` : "";
 }
@@ -647,14 +714,15 @@ function viewTrucks() {
     const over = num(t.fill) >= b.target;
     const href = isSelling() && t.truck === S.focus ? "#/sell" : `#/truck/${encodeURIComponent(t.truck)}`;
     return `<a class="trow" data-key="t-${esc(t.truck)}" href="${href}">
-      <div class="two-line"><span class="name">${esc(t.truck)}</span><span>${esc(routes(t.routes))}</span></div>
+      <div class="two-line"><span class="name">${esc(t.truck)}</span><span title="${esc(allRoutes(t.routes))}">${esc(routes(t.routes, mergedInto(t.truck).flatMap((m) => m.routes || [])))}</span></div>
       ${loadBar(t.fill, b.target)}
       <div class="pct num ${over ? "" : "or"}">${esc(fillPct(t.fill))}</div>
       <div class="two-line num"><span>${esc(group(t.kg))} kg</span><span>${esc(plural(t.stops, "stop"))}</span></div>
       <div class="two-line num">${num(t.unserved_value_inr) > 0 ? `<span>${esc(inr(t.unserved_value_inr))}</span><span>at risk</span>` : ""}</div>
-      <div class="right">${statusChip(t)}</div>
+      <div class="right">${statusChip(t)}${resultLine(t)}</div>
     </a>`;
   }).join("");
+  const merged = (b.merged || []).map((m) => `<a class="merged-row" data-key="merged-${esc(m.truck)}" href="#/truck/${encodeURIComponent(m.truck)}"><span>${esc(mergedLine(m))}</span>${mergedDetail(m) ? `<span class="muted small">${esc(mergedDetail(m))}</span>` : ""}</a>`).join("");
 
   const needs = needsCards();
   return `<div data-key="v-trucks">
@@ -673,6 +741,7 @@ function viewTrucks() {
       <section>
         <div class="thead tgrid"><span>Truck</span><span>Load. The line marks ${esc(pct(b.target))}</span></div>
         ${rows}
+        ${merged}
       </section>
       <aside class="needs">
         <h2>Needs you</h2>
@@ -683,10 +752,10 @@ function viewTrucks() {
 }
 
 /* ---------- Truck view ---------- */
-function optionCard(o, recommended, decidedOption) {
+function optionCard(o, recommended, decidedOption, plannedFill) {
   const isRec = o.name === recommended;
   const rows = [
-    ["Load", fillPct(o.load)],
+    ["Load", fillPct(decidedOption === o.name && plannedFill !== undefined ? plannedFill : o.load)],
     ["Truck cost", inr(o.truck_cost_inr)],
     ["Margin lost", inr(o.margin_lost_inr)],
     ["Expiry risk", inr(o.expiry_risk_inr)],
@@ -721,7 +790,7 @@ function stopsBlock(sheet) {
         ${batches ? `<small>${esc(batches)}</small>` : ""}${num(l.no_batch_pieces) > 0 ? `<small>${esc(group(l.no_batch_pieces))} pcs without a batch</small>` : ""}</div>
         <span class="chips">${chips}</span></div>`;
     }).join("");
-    const dropLine = drop ? `<div class="stop-status">${chip(drop.status === "delivered" ? "Delivered" : drop.status === "failed" ? "Failed" : drop.status, drop.status === "delivered" ? "gr" : "or")}${drop.photo ? `<span class="muted">Photo</span>` : ""}${isEv(drop.evidence) ? evBtn(drop.evidence) : ""}</div>` : "";
+    const dropLine = drop ? `<div class="stop-status">${chip(drop.status === "delivered" ? "Delivered" : drop.status === "failed" ? "Failed" : drop.status, drop.status === "delivered" ? "gr" : "or")}${drop.simulated ? `<span class="sim">Simulated</span>` : drop.photo ? `<span class="muted">Photo</span>` : ""}${isEv(drop.evidence) ? evBtn(drop.evidence) : ""}</div>` : "";
     out.push(`<div class="stop" data-key="stop-${esc(id)}">
       <span class="muted num">${i}</span>
       <div><a class="link" style="color:inherit;font-weight:500" href="#/retailers/${encodeURIComponent(id)}">${esc(retailerLabel(id, type))}</a>${dropLine}</div>
@@ -730,13 +799,13 @@ function stopsBlock(sheet) {
   });
   return out.join("");
 }
-function evidenceList(t, isFocus) {
+function evidenceList(t, isFocus, options, sheet) {
   const ids = [];
-  if (isFocus && S.run) {
-    if (S.options) findEv(S.options.evidence_id, ids);
-    (S.sheet || []).forEach((r) => findEv(r.evidence, ids));
-    (S.offers || []).forEach((o) => findEv(o.evidence_id, ids));
-    Object.values(S.drops || {}).forEach((d) => findEv(d.evidence, ids));
+  if (S.run) {
+    if (options) findEv(options.evidence_id, ids);
+    (sheet || []).forEach((r) => findEv(r.evidence, ids));
+    if (isFocus) (S.offers || []).forEach((o) => findEv(o.evidence_id, ids));
+    Object.values(S.drops || {}).filter((d) => d.truck === t.truck).forEach((d) => findEv(d.evidence, ids));
   }
   const item = (id) => {
     requestEvidence(id);
@@ -752,14 +821,30 @@ function evidenceList(t, isFocus) {
   const capacity = `<div class="evitem" data-key="ev-capacity"><span class="mono st">stand-in</span><span class="evsum">${esc(group(t.capacity_kg))} kg capacity. ${esc((S.standins || {}).vehicle_capacity_kg || "")}</span></div>`;
   return `<div class="evlist">${shown}${rest.length ? `<details data-key="ev-more"><summary class="muted small" style="cursor:pointer;padding:8px 0">${rest.length} more</summary>${rest.map(item).join("")}</details>` : ""}${capacity}</div>`;
 }
+function viewMergedTruck(m) {
+  const host = S.board.trucks.find((x) => x.truck === m.into);
+  const options = (S.options_by_truck || {})[m.truck];
+  return `<div data-key="v-truck-merged-${esc(m.truck)}">
+    <div class="crumbs"><a class="link" href="#/trucks">All trucks</a></div>
+    <h1>${esc(m.truck)}</h1>
+    <p class="merged-note">${esc(mergedLine(m))}. <a class="link" href="#/truck/${encodeURIComponent(m.into)}">Open ${esc(m.into)}</a></p>
+    ${mergedDetail(m) ? `<p class="sub">${esc(mergedDetail(m))}</p>` : ""}
+    ${m.reason ? `<p class="sub">${linkEv(m.reason)}</p>` : ""}
+    ${options ? `<h2 class="sec-title">Net cost of each option</h2><div class="opts">${(options.options || []).map((o) => optionCard(o, options.recommended, "merge", host && (S.plans || {})[host.truck] ? host.fill : undefined)).join("")}</div>` : ""}
+  </div>`;
+}
 function viewTruck() {
   const id = view.truck;
   const t = S.board.trucks.find((x) => x.truck === id);
+  const gone = (S.board.merged || []).find((m) => m.truck === id);
+  if (!t && gone) return viewMergedTruck(gone);
   if (!t) return `<div data-key="v-truck-none"><h1>No truck ${esc(id)}</h1><p class="quiet"><a class="link" href="#/trucks">Back to tomorrow's trucks</a></p></div>`;
   const target = S.board.target;
   const isFocus = S.run && S.focus === t.truck;
-  const options = isFocus ? S.options : null;
-  const sheet = isFocus ? S.sheet : null;
+  const options = (S.options_by_truck || {})[t.truck] || null;
+  const sheet = (S.sheets || {})[t.truck] || null;
+  const plan = (S.plans || {})[t.truck] || null;
+  const carried = mergedInto(t.truck);
   const gap = Math.max(0, Math.ceil(target * num(t.capacity_kg) - num(t.kg)));
   const over = num(t.fill) >= target;
   const ordersSaved = isFocus && num(S.orders_saved) > 0 ? ` · ${plural(num(S.orders_saved), "order")} saved` : "";
@@ -770,18 +855,20 @@ function viewTruck() {
       ${isFocus && S.offers && S.offers.length ? `<a class="link" href="${isSelling() ? "#/sell" : "#/offers"}">${isSelling() ? "Selling to fill" : "Offers"}</a>` : ""}
     </div>
     <div class="tk-head">
-      <div><h1>${esc(t.truck)}</h1><p class="sub">${esc(routes(t.routes))} · ${esc(plural(t.stops, "stop"))}</p></div>
+      <div><h1>${esc(t.truck)}</h1><p class="sub">${esc(allRoutes(t.routes))} · ${esc(plural(t.stops, "stop"))}</p></div>
       <div class="tk-pct num ${over ? "" : "or"}">${esc(fillPct(t.fill))}</div>
       <div class="tk-bar">${loadBar(t.fill, target)}
         <p class="num">${esc(group(t.kg))} of ${esc(group(t.capacity_kg))} kg.${gap > 0 ? ` Needs ${esc(group(gap))} kg more to reach ${esc(pct(target))}.` : ""}${esc(ordersSaved)}</p>
       </div>
     </div>
+    ${carried.map((m) => `<p class="merged-note" data-key="carries-${esc(m.truck)}"><a class="link" href="#/truck/${encodeURIComponent(m.truck)}">${esc(mergedLine(m))}</a>${mergedDetail(m) ? `. ${esc(mergedDetail(m))}` : ""}</p>`).join("")}
     ${t.decision ? `<div class="decided">${statusChip(t)}<span>${linkEv(t.decision.reason)}</span></div>` : ""}
-    <h2 class="sec-title">Net cost of each option</h2>
-    ${options ? `<div class="opts">${(options.options || []).map((o) => optionCard(o, options.recommended, t.decision && t.decision.option)).join("")}</div>` : `<p class="quiet">Not priced yet</p>`}
+    ${resultLine(t)}
+    ${options || !t.decision ? `<h2 class="sec-title">Net cost of each option</h2>` : ""}
+    ${options ? `<div class="opts">${(options.options || []).map((o) => optionCard(o, options.recommended, t.decision && t.decision.option, plan ? t.fill : undefined)).join("")}</div>` : t.decision ? "" : `<p class="quiet">Not priced yet</p>`}
     <div class="split" style="margin-top:6px">
       <section>
-        ${planBar()}
+        ${planBar(plan)}
         ${deliveryBar(sheet)}
         ${upstreamPanel()}
         <h2 class="sec-title">Stops</h2>
@@ -790,7 +877,7 @@ function viewTruck() {
       <aside>
         ${pending ? `<div class="needs"><h2 class="sec-title">Needs you</h2>${pending}</div>` : ""}
         <h2 class="sec-title">Evidence</h2>
-        ${evidenceList(t, isFocus)}
+        ${evidenceList(t, isFocus, options, sheet)}
       </aside>
     </div>
   </div>`;
@@ -808,12 +895,12 @@ function gaugeStart(t) {
   gauge.start = gauge.start === null ? v : Math.min(gauge.start, v);
   return gauge.start;
 }
-function planBar() {
-  const p = S.plan;
+function planBar(p) {
   if (!p) return "";
   const label = { frozen: "Frozen", committed: "Orders written", issued: "Issued", superseded: "Replaced" }[p.status] || p.status;
-  const blocked = (S.safeguards || []).filter((e) => e.kind === "promise_blocked").length;
-  const rejected = (S.safeguards || []).filter((e) => e.kind === "plan_rejected").length;
+  const mine = (S.safeguards || []).filter((e) => !e.truck || e.truck === p.truck);
+  const blocked = mine.filter((e) => e.kind === "promise_blocked").length;
+  const rejected = mine.filter((e) => e.kind === "plan_rejected").length;
   const revisions = (p.revisions || []).length;
   const notes = [
     `Plan v${num(p.version)}`,
@@ -837,7 +924,7 @@ function deliveryBar(sheet) {
   }
   const text = waiting.length
     ? `${closed.length} of ${stops.size} stops proven.${live.length ? ` Waiting for a photo from your phone for ${live.join(", ")}.` : ""}`
-    : `All ${stops.size} stops closed.`;
+    : `All ${stops.size} stops closed: ${closed.filter((r) => S.drops[r].status === "delivered").length} delivered, ${closed.filter((r) => S.drops[r].status === "failed").length} failed.`;
   return `<div class="card" data-key="delivery-bar" style="padding:14px 17px;margin-bottom:18px">${esc(text)}</div>`;
 }
 function chatPanel() {
@@ -1113,6 +1200,7 @@ function butterChart() {
       ${days.map((d) => `<div class="col" title="${esc(shortDate(d.date))}: ${esc(inr(d.billed_inr))}"><i style="height:${(num(d.billed_inr) / max * 100).toFixed(2)}%"></i></div>`).join("")}
     </div>
     <div class="xlabels">${labels.map((i) => `<span style="left:${(i / n * 100).toFixed(2)}%">${esc(shortDate(days[i].date))}</span>`).join("")}</div>
+    <p class="muted small" style="margin-top:6px">This chart shows the full month for context. Trex only sees records up to the plan evening, ${esc(shortDate(S.board.records_to))}.</p>
   </div>`;
 }
 /* The stage each stopped_at phrase from trace() points to. Anything else marks no stage. */
@@ -1167,24 +1255,42 @@ function transportersBlock() {
     ${rows || `<p class="muted small">${esc(found.note)}</p>`}
   </div>`;
 }
+/* The agent may log a truck code where a route belongs, and "unknown" when a whole stop failed. */
+function missPlace(v) {
+  const isTruck = /^V\d+$/i.test(String(v)) || ((S && S.board.trucks) || []).some((t) => t.truck === v);
+  return `${isTruck ? "Truck" : "Route"} ${v}`;
+}
+const missProduct = (id) => (!id || String(id).toLowerCase() === "unknown" ? "Whole stop" : productName(id));
+function missesLead() {
+  const u = S.upstream;
+  const days = (S.butter && S.butter.days) || [];
+  const gap = days.length ? longestZeroRun(days).len : 0;
+  const failed = Object.values(S.drops || {}).filter((d) => d.status === "failed").length;
+  const parts = [];
+  if (gap && u) parts.push(`<p class="miss-lead"><b>${esc((S.butter && S.butter.label) || "Butter")} went ${esc(plural(gap, "selling day"))} with no bills.</b> ${esc(cap(u.stopped_at))}. Held by ${esc(u.held_by)}. ${chip("Stand-in", "am")}</p>`);
+  if (failed) parts.push(`<p class="sub">${esc(plural(failed, "stop"))} failed on delivery day.${Object.values(S.drops).some((d) => d.status === "failed" && d.simulated) ? ` <span class="sim">Simulated</span>` : ""}</p>`);
+  return parts.join("");
+}
 function viewMisses() {
   const misses = S.misses || [];
   const rows = misses.map((m) => {
     const unknown = m.stage === "not established";
     return `<tr data-key="m-${esc(m.route)}-${esc(m.product)}">
-      <td>Route ${esc(m.route)}</td><td>${esc(productName(m.product))}</td>
-      <td>${unknown ? chip("Not established", "or") : esc(cap(m.stage))}</td><td>${esc(cap(m.held_by))}</td>
+      <td>${esc(missPlace(m.route))}</td><td>${esc(missProduct(m.product))}</td>
+      <td data-l="Stuck at">${unknown ? chip("Not established", "or") : esc(cap(m.stage))}</td><td data-l="Held by">${esc(cap(m.held_by))}</td>
       <td class="r">${(m.evidence || []).filter(isEv).map(evBtn).join(" ")}</td>
     </tr>`;
   }).join("");
   return `<div data-key="v-misses">
     <h1>Misses</h1>
-    <p class="sub">Low yesterday and low today: where it is stuck and who holds it</p>
+    <p class="sub">What ran short, where it is stuck, and who holds it</p>
+    ${missesLead()}
+    <div class="mtable">
+    <h2 style="margin-bottom:8px">Logged in this run</h2>
+    ${misses.length ? `<table class="otable"><thead><tr><th>Truck or route</th><th>What</th><th>Stuck at</th><th>Held by</th><th class="r">Evidence</th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="muted">No misses logged yet</p>`}
+    </div>
     ${butterChart()}
     ${upstreamPanel()}
-    <div class="mtable">
-    ${misses.length ? `<table class="otable"><thead><tr><th>Route</th><th>Product</th><th>Stuck at</th><th>Held by</th><th class="r">Evidence</th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="muted">No misses logged yet</p>`}
-    </div>
   </div>`;
 }
 
@@ -1207,7 +1313,7 @@ const TOOL_WORDS = {
   write_orders: (a) => `Writing orders for ${a.truck}`,
   issue_load_sheet: (a) => `Issuing the load sheet for ${a.truck}`,
   record_drop: (a) => `Closing the drop at ${a.retailer}`,
-  log_miss: (a) => `Logging a miss on route ${a.route}`,
+  log_miss: (a) => `Logging a miss: ${missPlace(a.route)}`,
   report_to_lead: () => "Prepared a report",
 };
 function describe(e) {
@@ -1228,8 +1334,8 @@ function describe(e) {
     case "decision_answered": return { t: `${e.by || "A person"} answered: ${e.answer}` };
     case "truck_decided": return { t: `${e.truck} locked: ${optionName(e.option)} at ${fillPct(e.fill)}`, d: e.reason };
     case "load_sheet_issued": return { t: `Load sheet issued for ${e.truck}`, d: `${plural(num(e.stops), "stop")}, ${plural(num(e.lines), "line")}, ${group(e.partial)} partial` };
-    case "drop_recorded": return { t: `${e.retailer} ${e.status}`, d: e.photo ? "Driver sent a photo" : "No photo" };
-    case "miss_logged": return { t: `Miss logged on route ${e.route}`, d: `${productName(e.product)}. ${cap(e.stage)}. Held by ${e.held_by}` };
+    case "drop_recorded": { const sim = !!((S.drops || {})[e.retailer] || {}).simulated; return { t: `${e.retailer} ${e.status}`, d: sim ? "Simulated driver message" : e.photo ? "Driver sent a photo" : "No photo", sim }; }
+    case "miss_logged": return { t: `Miss logged: ${missPlace(e.route)}`, d: `${missProduct(e.product)}. ${cap(e.stage)}. Held by ${e.held_by}` };
     case "report": return { t: "Report to dispatch lead", d: e.text };
     case "resumed_after_restart": return { t: "Picked up where it left off after a restart", tone: "warn" };
     case "agent_error": return { t: "Agent hit an error", d: e.error, tone: "warn" };
