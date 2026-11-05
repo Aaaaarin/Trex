@@ -61,6 +61,15 @@ TOOLS = [
 ]
 
 
+def _scope_line(scope: dict) -> str:
+    """Spell out what a yes covers, from the scope itself, so the approver sees the exact action."""
+    if scope["kind"] == "clarify":
+        return ""
+    unit = "kg" if scope["kind"] == "under_target" else "pieces"
+    parts = [scope["truck"], scope["retailer"], scope["product"], f"{scope['pieces']} {unit}" if scope["pieces"] else "", f"into {scope['detail']}" if scope["kind"] == "merge" and scope["detail"] else ""]
+    return f"\nA yes covers only: {scope['kind']}, " + ", ".join(p for p in parts if p)
+
+
 class Tools:
     def __init__(self, run: str, evening: str, plan_date: str, distributor: str = "A"):
         self.run, self.evening, self.plan_date, self.distributor = run, evening, plan_date, distributor
@@ -98,11 +107,15 @@ class Tools:
             raise ValueError(f"No truck serves route {route} tomorrow")
         return max(weights, key=weights.get)
 
+    def _served_routes(self) -> set[str]:
+        """Routes a truck really runs tomorrow. One approved extra stop does not open its whole route."""
+        return {ln.route for ln in self.night().lines if ln.source != "request"}
+
     def _serving_route(self, retailer: str) -> str:
         """A shop can be billed on several routes. Use its most-billed route with a truck tomorrow."""
         d = self.ledger.lines()
         routes = d[d["retailer_id"] == retailer]["route_id"].value_counts().index.tolist()
-        served = {ln.route for ln in self.night().lines}
+        served = self._served_routes()
         for route in routes:
             if route in served:
                 return route
@@ -264,7 +277,7 @@ class Tools:
             return {"error": f"{product} has no stock record, so it cannot be promised"}
         routes = self._own_routes(retailer)
         carrier = None
-        if not {ln.route for ln in night.lines} & set(routes):
+        if not self._served_routes() & set(routes):
             approval = dispatch.find_approval(self.run, "add_stop", retailer=retailer, product=product, pieces=int(pieces))
             if not approval:
                 return self._no_truck(retailer, product, pieces, routes)
@@ -338,8 +351,11 @@ class Tools:
 
     def request_decision(self, kind: str, truck: str, retailer: str, product: str, pieces: int, detail: str, question: str, options: list[str], claims: list[dict]) -> dict:
         check = gate.check(self.run, question, claims)
+        if kind == "add_stop" and not truck:
+            return {"error": "An extra stop must name the truck that would carry it"}
         scope = {"kind": kind, "truck": truck, "retailer": retailer, "product": product, "pieces": int(pieces), "detail": detail, "basis": dispatch.basis_of(self.run, truck or None)}
         did = hashlib.sha256(json.dumps(scope, sort_keys=True).encode() + self.run.encode()).hexdigest()[:10]
+        question = question + _scope_line(scope)
         store.execute("insert or ignore into decisions(id, run, ts, question, options, evidence, scope) values(?,?,?,?,?,?,?)", (did, self.run, time.time(), question, json.dumps(options), json.dumps(claims), json.dumps(scope)))
         store.log(self.run, "decision_requested", id=did, question=question, options=options, scope=scope, used_standin=check["used_standin"])
         channels.send(self.run, "approver", "approver", question + "\nOptions: " + ", ".join(options), f"{self.run}:decision:{did}")
@@ -476,8 +492,10 @@ class Tools:
             stops.setdefault(row["retailer"], []).append(row)
         for retailer, items in stops.items():
             short = [i for i in items if i["pieces"] < i["ordered"]]
-            body = "; ".join(f"{i['product_name']}: {i['pieces']}" + (f" of {i['ordered']}" if i["pieces"] < i["ordered"] else "") for i in items[:6])
-            text = f"Kal gaadi {truck} aa rahi hai. {body}." + (" Kuch maal kam hai, baaki agli gaadi se." if short else "")
+            first = sorted(items, key=lambda i: i.get("source") not in ("request", "offer"))
+            body = "; ".join(f"{i['product_name']}: {i['pieces']}" + (f" of {i['ordered']}" if i["pieces"] < i["ordered"] else "") for i in first[:6])
+            more = f" Aur {len(first) - 6} items." if len(first) > 6 else ""
+            text = f"Kal gaadi {truck} aa rahi hai. {body}.{more}" + (" Kuch maal kam hai. Baaki ki date abhi pakki nahi hai." if short else "")
             channels.send(self.run, "retailer", retailer, text, f"{self.run}:sheet:{truck}:v{plan['version']}:{retailer}")
         channels.send(self.run, "driver", f"driver-{truck}", f"Load sheet {truck} v{plan['version']}: {len(stops)} stops, {sum(i['pieces'] for i in sheet)} pieces. Trex will ask for a photo at each drop on the delivery day.", f"{self.run}:driver:{truck}:v{plan['version']}")
         dispatch.set_plan_status(self.run, truck, plan["version"], "issued")

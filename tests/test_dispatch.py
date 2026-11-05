@@ -478,3 +478,36 @@ def test_no_transporter_search_once_a_truck_is_matched(run, monkeypatch):
     monkeypatch.setattr(upstream, "trace", lambda product: {"vehicle_matched": True, "po_id": "PO-1"})
     monkeypatch.setattr(crustdata, "find_transporters", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no search")))
     assert "error" in tools_for(run).find_transporters("P006")
+
+
+def test_one_approved_stop_does_not_open_its_route(run):
+    tools = tools_for(run)
+    shop = _shop_with_no_truck(tools)
+    evidence = tools._standin_evidence("t", "t", {})
+    approve(run, "add_stop", truck="V3", retailer=shop, product="P001", pieces=12)
+    assert tools.add_request(shop, "P001", 12, evidence)["truck"] == "V3"
+    assert tools.add_request(shop, "P009", 6, evidence)["needs_decision"]
+    d = tools.ledger.lines()
+    own = d[d["retailer_id"] == shop]["route_id"].iloc[0]
+    other = next(r for r in d[d["route_id"] == own]["retailer_id"].unique() if r != shop and not (set(d[d["retailer_id"] == r]["route_id"]) & tools._served_routes()))
+    assert tools.add_request(other, "P001", 12, evidence)["needs_decision"]
+
+
+def test_extra_stop_question_must_name_a_truck_and_shows_what_a_yes_covers(run):
+    tools = tools_for(run)
+    assert "error" in tools.request_decision("add_stop", "", "R-1", "P001", 12, "", "Add it?", ["Approve", "Reject"], [])
+    tools.request_decision("add_stop", "V3", "R-1", "P001", 12, "", "Add it?", ["Approve", "Reject"], [])
+    question = store.rows("select question from decisions where run=?", (run,))[0]["question"]
+    assert "V3" in question and "R-1" in question and "12 pieces" in question
+
+
+def test_shop_message_promises_no_next_truck_and_lists_the_request_first(run):
+    tools = tools_for(run)
+    evidence = tools._standin_evidence("t", "t", {})
+    tools.add_request("R-120", "P006", 12, evidence)
+    approve(run, "under_target", truck="V2", pieces=tools.preview_plan("V2")["kg"])
+    tools.freeze_plan("V2", "go", "test")
+    tools.write_orders("V2")
+    tools.issue_load_sheet("V2")
+    texts = [r["text"] for r in store.rows("select text from outbox where run=? and recipient like 'R-%'", (run,))]
+    assert texts and not any("agli gaadi" in t for t in texts)

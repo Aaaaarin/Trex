@@ -139,8 +139,9 @@ def snapshot(run: str | None) -> dict:
     focus = store.get_kv(run, "focus", DEMO["hero_truck"])
     options = store.get_kv(run, f"options:{focus}")
     night = _night(run)
-    decisions = store.rows("select id, question, options, answer, answered_by from decisions where run=? order by ts", (run,))
+    decisions = store.rows("select id, question, options, answer, answered_by, scope from decisions where run=? order by ts", (run,))
     for d in decisions:
+        d["scope"] = json.loads(d["scope"] or "{}")
         d["options"] = json.loads(d["options"])
     messages = store.rows("select role, recipient as who, text, channel, ts, 'out' as direction from outbox where run=? union all select role, sender as who, text, case simulated when 1 then 'simulated' else 'telegram' end, ts, 'in' from inbox where run=? order by ts", (run, run))
     gate_blocks = len(_events(run, ("gate_blocked",), 2000))

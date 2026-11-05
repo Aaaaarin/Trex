@@ -602,11 +602,15 @@ function statusChip(t) {
   if (S.run) return chip("Undecided", "mu");
   return "";
 }
+function typedAnswer(d) {
+  return ((d.scope || {}).kind || "") === "clarify" ? `<div class="line need-type"><input id="ans-${esc(d.id)}" placeholder="Or type the answer" autocomplete="off"><button class="btn" data-act="answerTyped" data-id="${esc(d.id)}">Send</button></div>` : "";
+}
 function needsCards() {
   const list = pendingDecisions();
   return list.map((d) => `
     <div class="card need" data-key="need-${esc(d.id)}">
-      <p>${linkEv(d.question)}</p>
+      <p style="white-space:pre-line">${linkEv(d.question)}</p>
+      ${typedAnswer(d)}
       <div class="acts">${(d.options || []).map((o, i) => `<button class="btn ${i === 0 ? "ink" : ""}" data-act="answer" data-id="${esc(d.id)}" data-answer="${esc(o)}" ${busyDecisions.has(d.id) ? "disabled" : ""}>${esc(o)}</button>`).join("")}</div>
     </div>`).join("");
 }
@@ -1497,6 +1501,11 @@ const ACTIONS = {
       toast({ title: "Answer not saved", body: e.message, plain: true });
     }
     poll();
+  },
+  answerTyped(el) {
+    const input = document.getElementById(`ans-${el.dataset.id}`);
+    const answer = input ? input.value.trim() : "";
+    if (answer) ACTIONS.answer({ dataset: { id: el.dataset.id, answer } });
   },
   fault() {
     const fault = $("#fault-sel").value;
