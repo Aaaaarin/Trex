@@ -167,9 +167,19 @@ class Tools:
         store.set_kv(self.run, f"offers:{truck}", known)
         return data
 
+    def _serving_route(self, retailer: str) -> str:
+        """A shop can be billed on several routes. Use its most-billed route with a truck tomorrow."""
+        d = self.ledger.lines()
+        routes = d[d["retailer_id"] == retailer]["route_id"].value_counts().index.tolist()
+        served = {ln.route for ln in self.night().lines}
+        for route in routes:
+            if route in served:
+                return route
+        raise ValueError(f"No truck serves {retailer} tomorrow on any of its routes: {routes}")
+
     def _add_extra(self, retailer: str, product: str, pieces: int, source: str, evidence_id: str, route: str | None = None) -> dict:
         r = self._retailer(retailer)
-        route = route or r["route_id"]
+        route = route or self._serving_route(retailer)
         truck = self._truck_for_route(route)
         extras = [e for e in self._extras() if not (e["retailer"] == retailer and e["product"] == product and e["source"] == source)]
         extras.append({"truck": truck, "route": route, "retailer": retailer, "retailer_type": r["retailer_type_hint"], "product": product, "pieces": int(pieces), "source": source, "evidence": evidence_id})

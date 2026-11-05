@@ -169,3 +169,9 @@ def test_driver_photo_finds_the_open_live_stop_even_after_other_messages(run):
     assert channels.pending_live_stop(run, "retailer") is None
     store.set_kv(run, "drops", {"R-120": {"status": "delivered"}})
     assert channels.pending_live_stop(run, "driver") is None
+
+
+def test_shop_billed_on_several_routes_goes_on_the_one_with_a_truck(run):
+    tools = Tools(run, EVENING, DAY)
+    route = tools._serving_route("R-120")
+    assert route in {ln.route for ln in tools.night().lines}
