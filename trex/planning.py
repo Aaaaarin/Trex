@@ -107,7 +107,7 @@ class Night:
         batches = []
         for b in self.stock_table.to_dict("records"):
             b = dict(b)
-            b["pieces"] = b["pieces"] - self.locked_batches.get(b["batch_id"], 0)
+            b["pieces"] = b["pieces"] - self.locked_batches.get(f"{b['product_id']}|{b['batch_id']}", 0)
             batches.append(b)
         return assign_batches(rows, batches)
 
@@ -155,7 +155,7 @@ class Night:
         for b in self.stock_table.itertuples():
             for kind, share in min_share.items():
                 if b.share_left >= share and b.days_left > 0:
-                    left = int(b.pieces) - self.locked_batches.get(b.batch_id, 0)
+                    left = int(b.pieces) - self.locked_batches.get(f"{b.product_id}|{b.batch_id}", 0)
                     usable[(b.product_id, kind)] = usable.get((b.product_id, kind), 0) + max(0, left)
         routes = {ln.route for ln in self.lines if ln.truck == truck}
         ordering = {(ln.retailer, ln.product) for ln in self.lines}

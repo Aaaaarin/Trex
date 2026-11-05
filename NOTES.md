@@ -23,6 +23,9 @@ Kept through the night: what we weighed, what worked, what did not.
 - The source check blocked a real mistake: the agent worked out a 25 kg gap itself, and the check refused it because no tool had returned that number.
 - The agent refused to guess between two 500 g butter packs and asked instead.
 
+- The dispatch validator caught a bug in our own code on its first live run: batch codes repeat across products in the real records, and we had assumed they were unique. It refused the plan, so nothing bad was sent.
+- An unreachable truck now goes straight to a priced choice. On Route 13 it stopped selling, asked one scoped question, and went out under target because holding cost more on stand-in numbers.
+
 ## What did not work
 
 - Stock ranges are not yet better than a simple habit. On 144 frequently bought pairs, predicting a rebuy within 7 days scored 46.5%, the same as assuming everyone buys weekly, because the ranges flagged every pair as low. They are honest about uncertainty, but they do not rank well yet.
@@ -31,6 +34,12 @@ Kept through the night: what we weighed, what worked, what did not.
 
 - The first version messaged 18 shops to gain 299 kg. Offers now use whole cases and start with larger buyers.
 - The model first rejected tool calls with reasoning on Chat Completions, so the loop moved to the Responses API.
+
+- Selling to fill as the goal was the wrong objective. A review pointed out that a fuller truck can be worse, and that going under target must be allowed. The objective is now meeting commitments at an acceptable total cost.
+- A reply that never came left a truck waiting forever. Offers now have a reply window.
+- With an unreachable target, it messaged 24 shops. The limit of 10 existed but was not enforced.
+- Accepted offers were dropped later when no batch suited that retailer. Offers now use only stock that retailer can take.
+- Tests with fake data missed all of these. Only live runs found them.
 
 ## Hardest case
 

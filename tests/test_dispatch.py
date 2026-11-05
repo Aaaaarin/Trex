@@ -314,3 +314,13 @@ def test_change_on_another_truck_does_not_cancel_an_approval(run):
     tools, _ = frozen_v3(run)
     store.set_kv(run, "extras", [{"truck": "V2", "route": "R04", "retailer": "R-120", "retailer_type": "horeca", "product": "P001", "pieces": 1, "source": "request", "evidence": "x", "needs_approval": False}])
     assert tools.write_orders("V3").get("version") == 1
+
+
+def test_batch_code_shared_by_two_products_stays_separate(run):
+    tools = tools_for(run)
+    night = tools.night()
+    counts = night.stock_table.groupby("batch_id")["product_id"].nunique()
+    assert (counts > 1).any(), "the real data has repeated batch codes, and this test depends on that"
+    plan = dispatch.build(run, night, "V2", "go", "t")
+    problems = [p for p in dispatch.validate(run, plan, night) if "Batch" in p]
+    assert problems == []

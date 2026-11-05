@@ -75,12 +75,18 @@ def night_for(run: str | None, evening: str, plan_date: str, distributor: str) -
     )
 
 
+def batch_key(product: str, batch: str) -> str:
+    """Batch codes repeat across products in real records, so a batch is only unique within a product."""
+    return f"{product}|{batch}"
+
+
 def _batch_use(plans: dict[str, dict]) -> dict[str, int]:
     used: dict[str, int] = {}
     for plan in plans.values():
         for ln in plan["lines"]:
             for b in ln["batches"]:
-                used[b["batch"]] = used.get(b["batch"], 0) + b["pieces"]
+                key = batch_key(ln["product"], b["batch"])
+                used[key] = used.get(key, 0) + b["pieces"]
     return used
 
 
@@ -143,10 +149,11 @@ def validate(run: str, plan: dict, night: Night) -> list[str]:
         for ln in p["lines"]:
             by_product[ln["product"]] = by_product.get(ln["product"], 0) + ln["pieces"]
             for b in ln["batches"]:
-                by_batch[b["batch"]] = by_batch.get(b["batch"], 0) + b["pieces"]
+                key = batch_key(ln["product"], b["batch"])
+                by_batch[key] = by_batch.get(key, 0) + b["pieces"]
     stock = night.stock_table
     product_stock = stock.groupby("product_id")["pieces"].sum().to_dict()
-    batch_rows = {r["batch_id"]: r for r in stock.to_dict("records")}
+    batch_rows = {batch_key(r["product_id"], r["batch_id"]): r for r in stock.to_dict("records")}
     for product, pieces in by_product.items():
         if product not in product_stock:
             problems.append(f"{product} has no stock record")
@@ -169,11 +176,9 @@ def validate(run: str, plan: dict, night: Night) -> list[str]:
         if sum(b["pieces"] for b in ln["batches"]) != ln["pieces"]:
             problems.append(f"{ln['retailer']} {ln['product']}: batches do not add up to the quantity")
         for b in ln["batches"]:
-            row = batch_rows.get(b["batch"])
+            row = batch_rows.get(batch_key(ln["product"], b["batch"]))
             if row is None:
                 continue
-            if row["product_id"] != ln["product"]:
-                problems.append(f"Batch {b['batch']} is not {ln['product']}")
             if row["days_left"] <= 0:
                 problems.append(f"Batch {b['batch']} has no life left")
             if row["share_left"] < min_share.get(ln["retailer_type"], 0.2):
@@ -193,7 +198,7 @@ def validate(run: str, plan: dict, night: Night) -> list[str]:
     elif kg > capacity + 0.5:
         problems.append(f"Load {kg:.0f} kg is over capacity {capacity} kg")
     elif kg / capacity < standin("fill_target") and not find_approval(run, "under_target", truck=truck, basis=plan["basis"]):
-        problems.append(f"Load is {kg / capacity:.0%}, under the {standin('fill_target'):.0%} target, with no approval for this exact plan")
+        problems.append(f"Load is {kg / capacity:.1%}, under the {standin('fill_target'):.0%} target, with no approval for this exact plan")
 
     for e in store.get_kv(run, "extras", []):
         if e["source"] == "request" and e.get("needs_approval") and not find_approval(run, "take_promised_stock", retailer=e["retailer"], product=e["product"], pieces=e["pieces"]):
