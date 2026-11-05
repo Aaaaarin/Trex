@@ -32,8 +32,11 @@ A driver's message is required to close a drop, and the agent is instructed to l
 | Drivers, pay, willingness to accept, report times and gate times | All stand-ins, invented until the operator confirms them. The invoices hold none of this. |
 | ETA | An estimate from gate-out time, stops closed and a stand-in 12 minutes per stop. There is no GPS. |
 | Upstream branch, plant, purchase-order and vehicle data | All stand-ins. Trace and vehicle matching are demonstrations, not live upstream feeds. |
+| Transporter list | Real companies from Crustdata, looked up on a public test lane rather than the operator's masked routes. It contacts nobody. Matching is by head office, so service on the lane is not confirmed, and refrigerated capability is what each company says of itself. In a five-lane test, 40 of 50 rows looked like real road carriers by an agent's judgement, with weaker refrigerated coverage. |
 | Order system | Local test implementation with injected failures, not a production integration. |
 | Delivery proof | Simulated apart from one live team phone in the demo. Trex records that a photo arrived and nothing inspects the picture. Simulated drops carry a simulated photo flag with no image behind it. A phone message or photo demonstrates the workflow, not a real commercial delivery or independent verification of goods. |
+
+Behaviour run: [docs/eval-results.md](docs/eval-results.md) records 12 paid messy requests, one run each, at an estimated $0.82. All met the expected next action after an offline re-score. The code changed during the run, every question was approved so refusal paths were not exercised, nothing after the first load sheet was scored, and repeatability is unknown. It found five product problems, since fixed with tests but not rerun in full.
 
 The invoice view has an as-of filter, but this is **not a leakage-free forecasting evaluation**: next-day invoices supply orders, later invoices supply stock stand-ins and simulated replies, and capacities use monthly statistics. No result should be presented as proven business impact.
 
