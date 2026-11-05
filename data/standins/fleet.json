@@ -1,0 +1,31 @@
+{
+  "_note": "Stand-ins. The masked invoices hold no drivers, locations, pay or gate records, and V1 to V6 are masked labels, at least one covering several real trucks. Every value here is invented until the operator confirms it.",
+  "driver_pay_share_of_trip_cost": 0.4,
+  "pay_step_share": 0.15,
+  "pay_cap_share": 1.35,
+  "max_rounds": 3,
+  "offer_width": 4,
+  "round_seconds": 14,
+  "sim_reply_seconds": 3,
+  "deadhead_inr_per_km": 14,
+  "report_time": "06:00",
+  "report_stagger_minutes": 15,
+  "on_time_grace_minutes": 5,
+  "gate_turnaround_minutes": 25,
+  "minutes_per_stop": 12,
+  "demo_clock_start": "05:45",
+  "demo_clock_minutes_per_second": 1,
+  "callback_seconds": 30,
+  "dispatcher": "dispatch-desk",
+  "route_reluctance": {"V1": 1.0, "V2": 1.1, "V3": 1.6},
+  "drivers": [
+    {"id": "D01", "km_to_depot": 3, "max_kg": 3500, "min_pay_share": 1.05},
+    {"id": "D02", "km_to_depot": 5, "max_kg": 6000, "min_pay_share": 0.95},
+    {"id": "D03", "km_to_depot": 6, "max_kg": 3500, "min_pay_share": 1.0},
+    {"id": "D04", "km_to_depot": 9, "max_kg": 6000, "min_pay_share": 1.0},
+    {"id": "D05", "km_to_depot": 11, "max_kg": 2500, "min_pay_share": 0.95},
+    {"id": "D06", "km_to_depot": 14, "max_kg": 4000, "min_pay_share": 1.1},
+    {"id": "D07", "km_to_depot": 18, "max_kg": 6000, "min_pay_share": 1.05},
+    {"id": "D08", "km_to_depot": 22, "max_kg": 4000, "min_pay_share": 0.95}
+  ]
+}

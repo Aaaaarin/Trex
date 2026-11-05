@@ -38,7 +38,7 @@ def live_roles(run: str) -> dict:
 
 def is_live(run: str, role: str, recipient: str) -> bool:
     live = live_roles(run)
-    return bool(os.environ.get("TELEGRAM_BOT_TOKEN")) and live.get("chat_id") and (recipient in live.get("recipients", []) or role in live.get("roles", []))
+    return bool(os.environ.get("TELEGRAM_BOT_TOKEN")) and live.get("chat_id") and (recipient in live.get("recipients", []) or role in live.get("roles", []) or role in store.get_kv(run, "fleet_live_roles", []))
 
 
 def send(run: str, role: str, recipient: str, text: str, key: str, offer: dict | None = None) -> dict:
@@ -151,6 +151,10 @@ class TelegramPoller(threading.Thread):
                 if msg.get("voice"):
                     text = "[voice note] " + _transcribe(token, msg["voice"]["file_id"])
                 if not run or text.startswith("/start"):
+                    continue
+                from . import fleet  # imported here because fleet sends through this module
+
+                if fleet.route_phone(run, text, bool(msg.get("photo")), update["update_id"]):
                     continue
                 last = store.get_kv(run, "last_live", {})
                 offer = last.get("offer") or {}

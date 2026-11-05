@@ -4,7 +4,7 @@ import threading
 import time
 import traceback
 
-from . import channels, dispatch, store
+from . import channels, dispatch, fleet, store
 from .agent import Agent, has_pending_work
 from .config import DEMO, standin
 
@@ -17,16 +17,19 @@ class Runner:
         self.stopped = threading.Event()
         self.thread = threading.Thread(target=self._loop, daemon=True, name=f"agent-{run}")
         self.simulator = channels.Simulator(run, DEMO["plan_evening"], DEMO["plan_date"], on_reply=self.wake.set)
+        self.fleet = fleet.Worker(run)
 
     def start(self) -> None:
         self.thread.start()
         self.simulator.start()
+        self.fleet.start()
         _ensure_poller()
 
     def stop(self) -> None:
         self.stopped.set()
         self.wake.set()
         self.simulator.stopped.set()
+        self.fleet.stopped.set()
 
     def _has_work(self) -> bool:
         if store.unhandled_inbox(self.run):
@@ -129,6 +132,7 @@ def answer_decision(run: str, decision_id: str, answer: str, by: str) -> None:
 def run_tomorrow(run: str, failed_share: int = 11) -> dict:
     """Simulate the delivery day. Live stops wait for a real photo from the builder's phone."""
     store.set_kv(run, "delivery_started", True)
+    fleet.morning(run)
     live = store.get_kv(run, "live", {})
     live_stops = set(live.get("recipients", []))
     decided = store.get_kv(run, "decided", {})
@@ -137,6 +141,8 @@ def run_tomorrow(run: str, failed_share: int = 11) -> dict:
         plan = dispatch.current_plan(run, truck)
         if not plan or plan["status"] != "issued":
             continue  # held, merged or not yet issued: nothing is out for delivery
+        if not fleet.may_roll(run, truck):
+            continue  # the dispatcher has not logged this truck out yet
         sheet = store.get_kv(run, f"sheet:{truck}", [])
         stops = sorted({row["retailer"] for row in sheet})
         for i, retailer in enumerate(stops):
