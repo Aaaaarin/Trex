@@ -159,3 +159,13 @@ def test_same_update_in_two_runs_counts_in_both(run):
     store.create_run(other, "test")
     assert store.add_inbox(run, "d", "driver", "R-1 delivered", True, "drop:V2:R-1")
     assert store.add_inbox(other, "d", "driver", "R-1 delivered", True, "drop:V2:R-1")
+
+
+def test_driver_photo_finds_the_open_live_stop_even_after_other_messages(run):
+    store.set_kv(run, "live", {"recipients": ["R-120"], "roles": ["driver"]})
+    assert channels.pending_live_stop(run, "driver") is None  # delivery day has not begun
+    store.set_kv(run, "delivery_started", True)
+    assert channels.pending_live_stop(run, "driver") == "R-120"
+    assert channels.pending_live_stop(run, "retailer") is None
+    store.set_kv(run, "drops", {"R-120": {"status": "delivered"}})
+    assert channels.pending_live_stop(run, "driver") is None

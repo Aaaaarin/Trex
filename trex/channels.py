@@ -99,6 +99,17 @@ class Simulator(threading.Thread):
                         self.on_reply()
 
 
+def pending_live_stop(run: str, role: str | None) -> str | None:
+    """The driver's own stop still open, once the delivery day has begun. A later agent message must not lose it."""
+    if role != "driver" or not store.get_kv(run, "delivery_started"):
+        return None
+    closed = store.get_kv(run, "drops", {})
+    for retailer in store.get_kv(run, "live", {}).get("recipients", []):
+        if retailer not in closed:
+            return retailer
+    return None
+
+
 def _transcribe(token: str, file_id: str) -> str:
     """Turn a voice note into text. If that fails, say so, and the agent treats it as unclear."""
     try:
@@ -143,7 +154,7 @@ class TelegramPoller(threading.Thread):
                     continue
                 last = store.get_kv(run, "last_live", {})
                 offer = last.get("offer") or {}
-                stop = offer.get("stop")
+                stop = offer.get("stop") or pending_live_stop(run, last.get("role"))
                 if last.get("role") == "approver":
                     open_decision = store.rows("select id from decisions where run=? and answer is null order by ts desc limit 1", (run,))
                     if open_decision:
@@ -152,8 +163,10 @@ class TelegramPoller(threading.Thread):
                         if self.on_reply:
                             self.on_reply(run)
                         continue
-                if stop:
-                    text = f"{text} (drop at {stop})"
+                if stop and msg.get("photo"):
+                    text = f"Driver sent a delivery photo for stop {stop}. {msg.get('caption') or ''}".strip()
+                elif stop:
+                    text = f"{text} (about stop {stop})"
                 store.add_inbox(run, last.get("recipient", "unknown"), last.get("role", "unknown"), text, False, f"tg:{update['update_id']}", {"offer": last.get("offer"), "photo": bool(msg.get("photo")), "retailer": stop or last.get("recipient")})
                 if self.on_reply:
                     self.on_reply(run)
