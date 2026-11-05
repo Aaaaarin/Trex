@@ -1,0 +1,16 @@
+.env
+*.env
+*.xlsb
+*.xlsx
+*.docx
+*.pdf
+data/raw/
+data/private/
+*.sqlite
+*.db
+*.db-*
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+runtime/
