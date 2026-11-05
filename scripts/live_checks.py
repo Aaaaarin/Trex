@@ -20,6 +20,7 @@ CASES = [
     {"name": "hard request, failed write", "port": 8021, "text": "Route 4 ki gaadi kal jayegi? load kam hai. Hotel R-120 ko Butter 30x500 CP ke 200 packet chahiye kal subah", "fault": "500_after_write", "focus": "V2"},
     {"name": "truck that cannot reach target", "port": 8022, "text": "Route 13 ki gaadi kal jayegi kya? Bahut khaali lag rahi hai, kya karein", "fault": None, "focus": "V3"},
     {"name": "transporters", "port": 8025, "text": "Butter ki PO ke liye koi truck nahi lag raha. Kaha atka hai aur kis transporter ko phone karein? Trucks ka decision abhi mat lo.", "fault": None, "focus": "V2"},
+    {"name": "no truck", "port": 8026, "text": "Tomorrow for r149, check six individual packs of P009 fresh cream 1L plus twelve packs of P001 toned milk 1L.", "fault": None, "focus": "V1"},
     {"name": "merge", "port": 8023, "text": "Route 13 ki gaadi kal jayegi kya? Bahut khaali lag rahi hai, kya karein", "fault": None, "focus": "V3", "prefer": "merge"},
     {"name": "hold", "port": 8024, "text": "Route 13 ki gaadi workshop mein hai, kal nahi ja sakti aur koi doosri gaadi uske stops nahi le sakti. Hold karwa do", "fault": None, "focus": "V3", "prefer": "hold"},
 ]
