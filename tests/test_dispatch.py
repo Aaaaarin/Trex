@@ -32,7 +32,7 @@ def approve(run, kind, **scope):
 def frozen_v3(run):
     """V3 is far under target, so it needs an approval to dispatch."""
     tools = tools_for(run)
-    approve(run, "under_target", truck="V3")
+    approve(run, "under_target", truck="V3", pieces=tools.preview_plan("V3")["kg"])
     result = tools.freeze_plan("V3", "go", "test")
     assert result["status"] == "frozen", result
     return tools, result
@@ -46,12 +46,26 @@ def test_under_target_is_refused_without_approval(run):
 
 
 def test_approval_for_another_truck_does_not_count(run):
-    approve(run, "under_target", truck="V2")
+    approve(run, "under_target", truck="V2", pieces=tools_for(run).preview_plan("V3")["kg"])
     assert "error" in tools_for(run).freeze_plan("V3", "go", "test")
 
 
+def test_approval_for_a_different_load_does_not_count(run):
+    tools = tools_for(run)
+    approve(run, "under_target", truck="V3", pieces=tools.preview_plan("V3")["kg"] + 50)
+    assert "error" in tools.freeze_plan("V3", "go", "test")
+
+
+def test_preview_freezes_nothing_and_matches_the_plan(run):
+    tools = tools_for(run)
+    preview = tools.preview_plan("V3")
+    assert dispatch.current_plan(run, "V3") is None
+    approve(run, "under_target", truck="V3", pieces=preview["kg"])
+    assert round(tools.freeze_plan("V3", "go", "test")["kg"]) == preview["kg"]
+
+
 def test_approval_stops_counting_when_the_plan_changes(run):
-    approve(run, "under_target", truck="V3")
+    approve(run, "under_target", truck="V3", pieces=tools_for(run).preview_plan("V3")["kg"])
     store.set_kv(run, "extras", [{"truck": "V3", "route": "R13", "retailer": "R-901", "retailer_type": "horeca", "product": "P001", "pieces": 1, "source": "request", "evidence": "x"}])
     assert "error" in tools_for(run).freeze_plan("V3", "go", "test")
 

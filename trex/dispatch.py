@@ -197,8 +197,8 @@ def validate(run: str, plan: dict, night: Night) -> list[str]:
         problems.append(f"Truck {truck} has no capacity record")
     elif kg > capacity + 0.5:
         problems.append(f"Load {kg:.0f} kg is over capacity {capacity} kg")
-    elif kg / capacity < standin("fill_target") and not find_approval(run, "under_target", truck=truck, basis=plan["basis"]):
-        problems.append(f"Load is {kg / capacity:.1%}, under the {standin('fill_target'):.0%} target, with no approval for this exact plan")
+    elif kg / capacity < standin("fill_target") and not find_approval(run, "under_target", truck=truck, basis=plan["basis"], pieces=round(kg)):
+        problems.append(f"Load is {round(kg)} kg ({kg / capacity:.1%}), under the {standin('fill_target'):.0%} target, with no approval for exactly this load. Use preview_plan, then ask with pieces set to that kg")
 
     for e in store.get_kv(run, "extras", []):
         if e["source"] == "request" and e.get("needs_approval") and not find_approval(run, "take_promised_stock", retailer=e["retailer"], product=e["product"], pieces=e["pieces"]):

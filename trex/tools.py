@@ -47,7 +47,8 @@ TOOLS = [
     _tool("accept_offer", "Record a retailer's yes. evidence_id must be that retailer's reply. Pieces cannot exceed the offer. If the plan is committed it becomes a proposed revision.", {"retailer": _S, "product": _S, "pieces": _I, "evidence_id": _S}),
     _tool("release_offer", "Release reserved stock after a no or an unclear reply. evidence_id is the reply.", {"retailer": _S, "product": _S, "reason": _S, "evidence_id": _S}),
     _tool("send_message", "Send a short message to a person. role is retailer, salesman, driver or approver.", {"role": _S, "recipient": _S, "text": _S, "claims": _CLAIMS}),
-    _tool("request_decision", "Ask a person one exact question. kind is under_target, take_promised_stock, hold, merge, discount or clarify. Fill truck, retailer, product and pieces exactly as the action needs them, using empty text or 0 where they do not apply. For merge, detail is the host truck. Then end your turn.", {"kind": _S, "truck": _S, "retailer": _S, "product": _S, "pieces": _I, "detail": _S, "question": _S, "options": {"type": "array", "items": _S}, "claims": _CLAIMS}),
+    _tool("request_decision", "Ask a person one exact question. kind is under_target, take_promised_stock, hold, merge, discount or clarify. Fill truck, retailer, product and pieces exactly as the action needs them, using empty text or 0 where they do not apply. For under_target, pieces is the kg from preview_plan. For merge, detail is the host truck. Then end your turn.", {"kind": _S, "truck": _S, "retailer": _S, "product": _S, "pieces": _I, "detail": _S, "question": _S, "options": {"type": "array", "items": _S}, "claims": _CLAIMS}),
+    _tool("preview_plan", "See exactly what would ship for this truck after batch checks, without freezing anything. Use this figure, not truck_board, before asking to go under target.", {"truck": _S}),
     _tool("freeze_plan", "Build and validate this truck's dispatch plan and freeze it as a numbered version. option is go or sell_to_fill. The validator refuses anything over stock or capacity, without valid batches, or under target with no exact approval.", {"truck": _S, "option": _S, "reason": _S}),
     _tool("hold_truck", "Hold a truck for a later day and tell its retailers. Needs an approved hold decision for this truck. Nothing else dispatches it afterwards.", {"truck": _S, "reason": _S}),
     _tool("merge_truck", "Move this truck's stops onto another truck. Needs an approved merge decision naming the host. Then freeze the host's plan.", {"truck": _S, "into": _S, "reason": _S}),
@@ -299,6 +300,13 @@ class Tools:
         store.log(self.run, "decision_requested", id=did, question=question, options=options, scope=scope, used_standin=check["used_standin"])
         channels.send(self.run, "approver", "approver", question + "\nOptions: " + ", ".join(options), f"{self.run}:decision:{did}")
         return {"status": "waiting_for_person", "decision_id": did, "scope": scope, "instruction": "End your turn now. The answer will arrive as a new message. It applies only to this exact scope."}
+
+    def preview_plan(self, truck: str) -> dict:
+        plan = dispatch.build(self.run, self.night(), truck, "go", "preview")
+        problems = dispatch.validate(self.run, plan, self.night())
+        data = {"truck": truck, "kg": round(plan["kg"]), "fill": plan["fill"], "capacity_kg": plan["capacity_kg"], "lines": len(plan["lines"]), "unplaced": plan["unplaced"][:10], "validator_problems": problems[:10], "note": "For under_target, set pieces to this kg. The approval applies only to this exact load."}
+        data["evidence_id"] = self._standin_evidence(f"preview:{truck}:{dispatch.basis_of(self.run, truck)}", f"Previewed load of {truck}", data)
+        return data
 
     def freeze_plan(self, truck: str, option: str, reason: str) -> dict:
         existing = dispatch.current_plan(self.run, truck)
