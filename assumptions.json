@@ -1,0 +1,92 @@
+{
+  "demo": {
+    "distributor": "A",
+    "plan_evening": "2026-10-15",
+    "plan_date": "2026-10-16",
+    "hero_truck": "T3",
+    "lock_time": "21:00"
+  },
+  "standins": {
+    "fill_target": {
+      "value": 0.8,
+      "note": "Operator says about 80%. Level still unconfirmed"
+    },
+    "trip_cost_inr_per_tonne_capacity": {
+      "value": 1800,
+      "note": "Placeholder, operator to confirm"
+    },
+    "merge_extra_cost_inr": {
+      "value": 1400,
+      "note": "Placeholder distance cost for joining two routes"
+    },
+    "margin_rate": {
+      "value": 0.13,
+      "note": "Placeholder margin on sale value"
+    },
+    "lost_sale_chance": {
+      "value": {
+        "horeca": 0.9,
+        "modern": 0.7,
+        "outlet": 0.7,
+        "wholesale": 0.5,
+        "kirana": 0.6
+      },
+      "note": "Placeholder chance a sale is lost if a retailer gets nothing tomorrow"
+    },
+    "shelf_life_days": {
+      "value": {
+        "milk": 120,
+        "paneer": 45,
+        "butter": 120,
+        "cheese": 180,
+        "cream": 60,
+        "frozen": 180,
+        "ghee": 270,
+        "chocolate": 240,
+        "powder": 365,
+        "creamer": 365,
+        "other": 180
+      },
+      "note": "Placeholder shelf life by product group"
+    },
+    "min_life_share": {
+      "value": {
+        "modern": 0.6,
+        "outlet": 0.3,
+        "wholesale": 0.25,
+        "kirana": 0.2,
+        "horeca": 0.05
+      },
+      "note": "Placeholder minimum remaining life by retailer type"
+    },
+    "max_discount_inr_per_pack": {
+      "value": 6,
+      "note": "Placeholder allowed discount"
+    },
+    "max_questions_per_truck": {
+      "value": 10,
+      "note": "Limit so retailers are not pestered"
+    },
+    "stock_cover_days": {
+      "value": 5,
+      "note": "Stock on hand is set from later real bills, as no stock data exists"
+    },
+    "vehicle_capacity_kg": {
+      "value": {
+        "V1": 5881,
+        "V2": 3264,
+        "V3": 3252,
+        "V4": 857,
+        "V5": 2416,
+        "V6": 978
+      },
+      "note": "Each vehicle's own 95th percentile daily load in October. Real capacity unknown"
+    },
+    "scarce_products": {
+      "value": {
+        "P006": 0.6
+      },
+      "note": "Share of plan-day orders in stock. Set to create the scarce butter case, as no stock data exists"
+    }
+  }
+}
