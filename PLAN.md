@@ -1,6 +1,6 @@
 # Trex: who does what tonight
 
-**Goal:** by 6:00 AM, a public repo and a video where an unseen request becomes a truck sold full, with every fact sourced and each delivery proven.
+**Goal:** by 6:00 AM, a public repo and a video where an unseen request becomes a dispatch decision at an acceptable total cost, with every fact sourced and each delivery proven.
 
 ## Working rules
 
