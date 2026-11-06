@@ -29,6 +29,8 @@ flowchart TD
     Tools <--> Upstream
     Tools --> Dispatch["dispatch.py<br/>Frozen plan versions, exact-scope approvals<br/>Validator recomputes limits from source data"]
     Dispatch --> Orders["orders_api.py<br/>Local test order system<br/>Read back after injected errors"]
+    Tools -->|"Open purchase order has no truck"| Crust["crustdata.py + Crustdata Company Search API<br/>Real transporters for a person to call, saved as evidence<br/>Public test lane, contacts nobody"]
+    style Crust fill:#FFF1E8,stroke:#E8590C,color:#1A1A1A
     Tools --> Gate["gate.py<br/>Check numeric claims against evidence"]
     Gate --> Channels["channels.py<br/>Keyed outbox and inbox"]
     Tools -.-> Direct["Generated load-sheet, hold and merge notices<br/>Do not pass through numeric gate"]
@@ -81,6 +83,7 @@ flowchart TD
 - The model chooses tools and words. The allocation solver chooses allocated quantities. An offer or order request is not itself a delivered allocation.
 - The objective is meeting delivery commitments at an acceptable total cost. Selling to fill is one priced action, and going under target is allowed with an approval for that exact load.
 - A person handles material ambiguity and policy exceptions. Under-target, promised-stock, hold, merge and added-stop limits are enforced in tools. Asking on ambiguity, credit and substitution remain agent instructions. The CLI supplies automatic approvals and cannot demonstrate independent exception resolution.
+- Crustdata lookups use a generic public lane, never the operator's masked data. Companies are matched by head office, so service on the lane is not confirmed. Trex only lists them, and a person decides who to call.
 - The numeric gate checks numeric correspondence, not meaning or commercial truth. The diagram explicitly shows generated notifications that bypass that gate. Retailer-line replies bypass it too.
 - Persisted turns and keyed writes support retries and restart recovery. External messaging is not a transactional, guaranteed-delivery system.
 - Delivery proof is simulated apart from one live team phone. Even that live phone demonstrates evidence capture, not a verified commercial delivery, and nothing inspects a photo.
