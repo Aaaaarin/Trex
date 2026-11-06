@@ -38,6 +38,10 @@ A driver's message is required to close a drop, and the agent is instructed to l
 | Order system | Local test implementation with injected failures, not a production integration. |
 | Delivery proof | Simulated apart from one live team phone in the demo. Trex records that a photo arrived and nothing inspects the picture. Simulated drops carry a simulated photo flag with no image behind it. A phone message or photo demonstrates the workflow, not a real commercial delivery or independent verification of goods. |
 
+Demo video: the screens come from one real run with the live voice model. The shop's voice is generated speech. The order size was chosen so the load falls just under target and an approval fires (at 25 cases none fired, at 24 one did). The order-system fault is injected on purpose. Delivery is simulated, the gate and map clips are sped up, and both are labelled.
+
+Analysis tab: trends from the real masked invoices up to the plan evening. Areas means routes, since locations are masked. Map tab: a schematic with invented positions, since there is no GPS.
+
 Behaviour run: [docs/eval-results.md](docs/eval-results.md) records 12 paid messy requests, one run each, at an estimated $0.82. All met the expected next action after an offline re-score. The code changed during the run, every question was approved so refusal paths were not exercised, nothing after the first load sheet was scored, and repeatability is unknown. It found five product problems, since fixed with tests but not rerun in full.
 
 The invoice view has an as-of filter, but this is **not a leakage-free forecasting evaluation**: next-day invoices supply orders, later invoices supply stock stand-ins and simulated replies, and capacities use monthly statistics. No result should be presented as proven business impact.
