@@ -1,5 +1,41 @@
 # Trex
 
+Agents that own an FMCG distributor's inventory and transport optimization from shop order to delivery, doing the work of the order desk, dispatch coordinator and driver desk to cut transport cost, waste and lost sales.
+
+**Status:** working prototype. Invoices are real and masked. Capacity, cost, stock, drivers and pay are stand-ins, labelled on screen. Orders go to a test order system and no savings have been measured. [Architecture diagram](docs/diagram.md)
+
+## How it works
+
+1. **A shop orders** in Hinglish, on a browser voice call or on Telegram. The retailer agent answers status questions and passes orders on.
+2. **The Decider prices each truck** in rupees: go, sell to fill, merge or hold. A solver allocates stock and assigns batches by shelf life, and a validator freezes the plan. A person decides only the exceptions.
+3. **If an open purchase order has no truck,** Crustdata lists real transporters for a person to call. Trex contacts nobody.
+4. **The driver agent finds a driver,** raising the pay after each no. The dispatcher agent says who is coming and what to hand over, and logs the truck in and out.
+5. **Each drop closes** as delivered or failed. Failed drops stay on a miss list.
+
+## How to use it
+
+Set up once, in a Windows shell. Needs Python and an OpenAI key (paid). `CRUSTDATA_API_KEY` is optional and only needed for the transporter list.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:CHATGPT_API_KEY = "your-key"
+.\.venv\Scripts\python.exe -m uvicorn trex.server:app --host 127.0.0.1 --port 8000
+```
+
+Then open `http://127.0.0.1:8000/demo`, which shows all four screens on one page:
+
+1. Press **Reset**.
+2. On the shop phone, place an order by voice or by typing, such as `25 cases of P004`.
+3. Watch the order land on tomorrow's truck. Click a citation to see its source, and answer any approval card.
+4. Watch the driver offers. Press **Accept** on the driver phone, or let a simulated driver answer.
+5. On the dispatcher phone, log the truck in and out, then press **Start delivery day**.
+6. Read the delivered and failed counts and the miss list.
+
+For the full dashboard, open `http://127.0.0.1:8000` and type a request such as `V2 wali gaadi kal jayegi? Load check karo.` More options are under [Run it](#run-it).
+
+## In more detail
+
 Trex runs a distributor's nightly truck dispatch desk. Its objective is to meet delivery commitments at an acceptable total cost, not to fill trucks. For a truck it prices going, selling to fill, merging and holding, then allocates stock, writes orders and load sheets, finds a driver and tracks each drop to a recorded outcome. Going under target is allowed when a person approves that exact load.
 
 It takes on part of the dispatch and order coordinator's work: reconciling records, allocating limited stock, messaging retailers and drivers, chasing replies and recording what happened. The customer is a distribution operation. Who pays: **likely the brand, untested**. Neither willingness to pay nor retailer response rates have been validated.
